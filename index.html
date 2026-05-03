@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Piker — Daily Habits</title>
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🌿</text></svg>" />
+<style>
+  html, body, #root { margin:0; padding:0; min-height:100%; }
+  body { -webkit-font-smoothing: antialiased; }
+  button { font-family: inherit; }
+  input, select { font-family: inherit; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo } = React;
+
+/* =====================================================================
+   Piker — customizable weekly habit tracker
+   Single-file React app. State persists in localStorage.
+   ===================================================================== */
+
+const STORAGE_KEY = "piker_app_v1";
+
+const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+/* ----- Inline SVG icons (replaces lucide-react so no extra deps) ----- */
+const Icon = ({ d, size = 18, color = "currentColor", fill = "none", stroke = 2, style }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color}
+       strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" style={style}>
+    {d}
+  </svg>
+);
+const IconCheck     = (p) => <Icon {...p} d={<polyline points="20 6 9 17 4 12"/>} />;
+const IconCoffee    = (p) => <Icon {...p} d={<><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></>} />;
+const IconBook      = (p) => <Icon {...p} d={<><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></>} />;
+const IconMoon      = (p) => <Icon {...p} d={<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>} />;
+const IconActivity  = (p) => <Icon {...p} d={<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>} />;
+const IconWaves     = (p) => <Icon {...p} d={<><path d="M2 6c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M2 12c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M2 18c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/></>} />;
+const IconMountain  = (p) => <Icon {...p} d={<path d="M8 3l4 8 5-5 5 15H2L8 3z"/>} />;
+const IconWind      = (p) => <Icon {...p} d={<><path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M12.59 19.41A2 2 0 1 0 14 16H2"/><path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></>} />;
+const IconReset     = (p) => <Icon {...p} d={<><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></>} />;
+const IconSettings  = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>} />;
+const IconPlus      = (p) => <Icon {...p} d={<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>} />;
+const IconTrash     = (p) => <Icon {...p} d={<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></>} />;
+const IconArrowLeft = (p) => <Icon {...p} d={<><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>} />;
+
+const ICONS = {
+  activity: IconActivity, waves: IconWaves, mountain: IconMountain, wind: IconWind,
+  coffee: IconCoffee, book: IconBook, moon: IconMoon,
+};
+const ICON_CHOICES = Object.keys(ICONS);
+
+/* ----- date helpers ----- */
+function startOfWeek(date = new Date()) {
+  const d = new Date(date);
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate() - d.getDay());           // Sunday = 0
+  return d;
+}
+function fmtMonthDay(d) {
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+function weekKey(date) {
+  const s = startOfWeek(date);
+  return s.toISOString().slice(0, 10);
+}
+function buildDaysForWeek(weekStart) {
+  return DAY_NAMES.map((name, i) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    return { name, date: fmtMonthDay(d), iso: d.toISOString().slice(0,10) };
+  });
+}
+
+/* ----- defaults ----- */
+function defaultCategories() {
+  return [
+    {
+      id: "movement",
+      name: "Movement",
+      type: "movement",
+      subtitle: "5+ days a week",
+      perDay: [
+        { label: "Beach walk",       duration: "45–60 min easy",      icon: "waves" },
+        { label: "Pilates class",    duration: "Full class",          icon: "activity" },
+        { label: "Hike",             duration: "60–90 min",           icon: "mountain" },
+        { label: "Rest or easy walk",duration: "20–30 min optional",  icon: "wind" },
+        { label: "Pilates or run",   duration: "Class or 20–25 min",  icon: "activity" },
+        { label: "Beach walk",       duration: "45 min",              icon: "waves" },
+        { label: "Long hike or run", duration: "90+ min",             icon: "mountain" },
+      ],
+    },
+    {
+      id: "fruitveg",
+      name: "Fruit & Veg",
+      type: "slots",
+      subtitle: "Fruit at breakfast · Veg at lunch · Veg at dinner.",
+      slots: ["Fruit B", "Veg L", "Veg D"],
+    },
+    {
+      id: "water",
+      name: "Water",
+      type: "water",
+      subtitle: "Half your weight in ounces",
+      weightLbs: 150,
+      bottleOz: 24,
+    },
+    {
+      id: "coffee",
+      name: "Coffee",
+      type: "counter",
+      subtitle: "Up to 3 cups, finish by early afternoon",
+      max: 3,
+      icon: "coffee",
+    },
+    {
+      id: "reading",
+      name: "Read 5 Min",
+      type: "check",
+      subtitle: "Just five minutes. Quiets the mind.",
+      icon: "book",
+    },
+    {
+      id: "phone",
+      name: "Phone Away @ 9pm",
+      type: "check",
+      subtitle: "Down by 9pm. Better sleep, better mornings.",
+      icon: "moon",
+    },
+  ];
+}
+
+function defaultDataFor(cat) {
+  switch (cat.type) {
+    case "movement":
+    case "check":   return { values: Array(7).fill(false) };
+    case "slots":   return { values: Array(7).fill(0).map(() => cat.slots.map(() => false)) };
+    case "water":   return { values: Array(7).fill(0) };
+    case "counter": return { values: Array(7).fill(0) };
+    default:        return { values: Array(7).fill(null) };
+  }
+}
+
+function defaultStore() {
+  const cats = defaultCategories();
+  const wk = weekKey(new Date());
+  const data = {};
+  for (const c of cats) data[c.id] = defaultDataFor(c);
+  return {
+    categories: cats,
+    weeks: { [wk]: data },
+    currentWeek: wk,
+  };
+}
+
+function loadStore() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultStore();
+    const s = JSON.parse(raw);
+    if (!s.categories || !s.weeks) return defaultStore();
+    // ensure current week exists
+    const wk = weekKey(new Date());
+    if (!s.weeks[wk]) {
+      s.weeks[wk] = {};
+      for (const c of s.categories) s.weeks[wk][c.id] = defaultDataFor(c);
+    }
+    s.currentWeek = wk;
+    // ensure each category has data for current week
+    for (const c of s.categories) {
+      if (!s.weeks[wk][c.id]) s.weeks[wk][c.id] = defaultDataFor(c);
+    }
+    return s;
+  } catch (e) {
+    return defaultStore();
+  }
+}
+
+function saveStore(store) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); } catch (e) {}
+}
+
+/* =================== STYLE TOKENS =================== */
+const C = {
+  bgTop:    "#f4ede2",
+  bgBot:    "#ebe0cc",
+  card:     "#fff8ed",
+  ink:      "#3d3528",
+  inkSoft:  "#6b5d44",
+  muted:    "#8a7a5c",
+  line:     "#e0d4ba",
+  rule:     "#d4c4a3",
+  green:    "#5d6e4a",
+  blue:     "#4a7a8a",
+  brown:    "#6b4423",
+  dark:     "#3d3528",
+  gold:     "#a8956d",
+};
+const FONT = "Georgia, 'Times New Roman', serif";
+
+/* =================== APP =================== */
+function App() {
+  const [store, setStore] = useState(null);
+  const [view, setView]   = useState("home"); // home | settings | category-edit
+  const [editingId, setEditingId] = useState(null);
+
+  useEffect(() => { setStore(loadStore()); }, []);
+  useEffect(() => { if (store) saveStore(store); }, [store]);
+
+  if (!store) return (
+    <div style={{ minHeight:"100vh", background:C.bgTop, display:"flex", alignItems:"center",
+                  justifyContent:"center", fontFamily:FONT, color:C.ink }}>
+      Loading…
+    </div>
+  );
+
+  const wk = store.currentWeek;
+  const data = store.weeks[wk];
+  const days = buildDaysForWeek(new Date(wk + "T00:00:00"));
+
+  const updateData = (catId, fn) => {
+    setStore(s => {
+      const next = { ...s, weeks: { ...s.weeks } };
+      next.weeks[wk] = { ...s.weeks[wk] };
+      next.weeks[wk][catId] = fn(s.weeks[wk][catId]);
+      return next;
+    });
+  };
+  const updateCategories = (fn) => {
+    setStore(s => {
+      const cats = fn(s.categories);
+      // ensure data exists for new/changed cats this week
+      const wkData = { ...s.weeks[wk] };
+      for (const c of cats) {
+        if (!wkData[c.id]) wkData[c.id] = defaultDataFor(c);
+      }
+      // remove data for deleted cats
+      for (const id of Object.keys(wkData)) {
+        if (!cats.find(c => c.id === id)) delete wkData[id];
+      }
+      return { ...s, categories: cats, weeks: { ...s.weeks, [wk]: wkData } };
+    });
+  };
+
+  const resetWeek = () => {
+    if (!confirm("Reset the whole week? This clears all check-ins for this week.")) return;
+    setStore(s => {
+      const fresh = {};
+      for (const c of s.categories) fresh[c.id] = defaultDataFor(c);
+      return { ...s, weeks: { ...s.weeks, [wk]: fresh } };
+    });
+  };
+
+  if (view === "settings") {
+    return <Settings store={store} updateCategories={updateCategories}
+                     onBack={() => setView("home")}
+                     onEdit={(id) => { setEditingId(id); setView("category-edit"); }} />;
+  }
+  if (view === "category-edit") {
+    return <CategoryEditor store={store}
+                           catId={editingId}
+                           updateCategories={updateCategories}
+                           onBack={() => setView("settings")} />;
+  }
+
+  return <Home store={store} days={days} data={data}
+               updateData={updateData}
+               onSettings={() => setView("settings")}
+               onReset={resetWeek} />;
+}
+
+/* =================== HOME =================== */
+function Home({ store, days, data, updateData, onSettings, onReset }) {
+  const cats = store.categories;
+  const weekRangeLabel = `${days[0].date} — ${days[6].date}`;
+  return (
+    <Page>
+      <div style={{ maxWidth:640, margin:"0 auto" }}>
+        <header style={{ textAlign:"center", marginBottom:24, position:"relative" }}>
+          <div style={{ fontSize:11, letterSpacing:4, textTransform:"uppercase", color:C.muted, marginBottom:8 }}>
+            {weekRangeLabel}
+          </div>
+          <h1 style={{ fontSize:44, fontWeight:400, margin:0, fontStyle:"italic", letterSpacing:"-0.5px" }}>Piker</h1>
+          <div style={{ fontSize:12, color:C.muted, marginTop:4, fontStyle:"italic" }}>your week</div>
+          <div style={{ width:40, height:1, background:C.gold, margin:"16px auto" }} />
+          <button onClick={onSettings}
+                  style={{ position:"absolute", top:0, right:0, background:"transparent",
+                           border:"1px solid "+C.rule, padding:"8px 10px", borderRadius:2,
+                           cursor:"pointer", color:C.muted, display:"inline-flex", alignItems:"center", gap:6 }}>
+            <IconSettings size={14} color={C.muted} /> <span style={{ fontSize:11, letterSpacing:1, textTransform:"uppercase" }}>Edit</span>
+          </button>
+        </header>
+
+        {cats.map((cat) => (
+          <CategoryCard key={cat.id} cat={cat} days={days}
+                        data={data[cat.id]}
+                        update={(fn) => updateData(cat.id, fn)} />
+        ))}
+
+        <div style={{ textAlign:"center", marginTop:32 }}>
+          <button onClick={onReset} style={{
+            background:"transparent", border:"none", color:C.muted, fontSize:12, cursor:"pointer",
+            display:"inline-flex", alignItems:"center", gap:6, letterSpacing:1, textTransform:"uppercase",
+          }}>
+            <IconReset size={12} color={C.muted}/> Reset week
+          </button>
+        </div>
+        <div style={{ textAlign:"center", marginTop:16, fontSize:11, color:C.gold, letterSpacing:1, fontStyle:"italic" }}>
+          Progress saves automatically.
+        </div>
+      </div>
+    </Page>
+  );
+}
+
+/* =================== A SINGLE CATEGORY CARD =================== */
+function CategoryCard({ cat, days, data, update }) {
+  if (cat.type === "movement") return <MovementCard cat={cat} days={days} data={data} update={update} />;
+  if (cat.type === "slots")    return <SlotsCard    cat={cat} days={days} data={data} update={update} />;
+  if (cat.type === "water")    return <WaterCard    cat={cat} days={days} data={data} update={update} />;
+  if (cat.type === "counter")  return <CounterCard  cat={cat} days={days} data={data} update={update} />;
+  if (cat.type === "check")    return <CheckCard    cat={cat} days={days} data={data} update={update} />;
+  return null;
+}
+
+function Section({ title, subtitle, children }) {
+  return (
+    <div style={{ marginBottom:28, background:C.card, borderRadius:2, border:"1px solid "+C.line, overflow:"hidden" }}>
+      <div style={{ padding:"18px 16px 14px", borderBottom:"1px solid "+C.line,
+                    display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:8 }}>
+        <h2 style={{ margin:0, fontSize:18, fontWeight:400, fontStyle:"italic" }}>{title}</h2>
+        <span style={{ fontSize:11, color:C.muted, letterSpacing:1, textTransform:"uppercase", textAlign:"right" }}>{subtitle}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Circle({ done }) {
+  return (
+    <div style={{ width:22, height:22, borderRadius:"50%",
+                  border:"1.5px solid "+C.muted,
+                  background: done ? C.green : "transparent",
+                  display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+      {done && <IconCheck size={14} color="#fff8ed" stroke={3} />}
+    </div>
+  );
+}
+
+function MovementCard({ cat, days, data, update }) {
+  const v = data.values;
+  const count = v.filter(Boolean).length;
+  const toggle = (i) => update(d => {
+    const nv = [...d.values]; nv[i] = !nv[i]; return { ...d, values: nv };
+  });
+  return (
+    <Section title={cat.name} subtitle={`${count} / 7 days`}>
+      {days.map((d, i) => {
+        const dayCfg = cat.perDay[i] || { label:"Move", duration:"" };
+        const IconC = ICONS[dayCfg.icon] || IconActivity;
+        const done = v[i];
+        return (
+          <div key={i} onClick={() => toggle(i)}
+               style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px",
+                        borderBottom: i === 6 ? "none" : "1px solid "+C.line,
+                        cursor:"pointer", opacity: done ? 0.55 : 1, transition:"opacity 0.2s" }}>
+            <Circle done={done} />
+            <IconC size={18} color={C.muted} />
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:14, fontWeight:600, textDecoration: done ? "line-through" : "none" }}>
+                {d.name} <span style={{ color:C.muted, fontWeight:400 }}>· {d.date}</span>
+              </div>
+              <div style={{ fontSize:13, color:C.inkSoft, marginTop:2 }}>
+                {dayCfg.label}{dayCfg.duration ? <span style={{ color:C.gold }}> · {dayCfg.duration}</span> : null}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </Section>
+  );
+}
+
+function SlotsCard({ cat, days, data, update }) {
+  const v = data.values;
+  const perfect = v.filter(d => Array.isArray(d) && d.length === cat.slots.length && d.every(Boolean)).length;
+  const toggle = (di, si) => update(d => {
+    const nv = d.values.map(arr => Array.isArray(arr) ? [...arr] : cat.slots.map(() => false));
+    if (!nv[di]) nv[di] = cat.slots.map(() => false);
+    nv[di][si] = !nv[di][si];
+    return { ...d, values: nv };
+  });
+  return (
+    <Section title={cat.name} subtitle={`${perfect} / 7 perfect days`}>
+      <div style={{ padding:"12px 16px 4px" }}>
+        {cat.subtitle && (
+          <div style={{ fontSize:12, color:C.muted, marginBottom:12, fontStyle:"italic" }}>
+            {cat.subtitle}
+          </div>
+        )}
+        {days.map((d, i) => {
+          const day = Array.isArray(v[i]) ? v[i] : cat.slots.map(() => false);
+          const allDone = day.length === cat.slots.length && day.every(Boolean);
+          return (
+            <div key={i} style={{ padding:"12px 0", borderBottom: i === 6 ? "none" : "1px solid "+C.line }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                <div style={{ fontSize:13 }}>
+                  <strong>{d.name.slice(0,3)}</strong> <span style={{ color:C.muted }}>{d.date}</span>
+                </div>
+                {allDone && <span style={{ fontSize:11, color:C.green, letterSpacing:1, textTransform:"uppercase" }}>✓ Perfect</span>}
+              </div>
+              <div style={{ display:"flex", gap:6 }}>
+                {cat.slots.map((slot, si) => (
+                  <button key={si} onClick={() => toggle(i, si)}
+                          style={{ flex:1, padding:"10px 4px",
+                                   border:"1px solid "+C.rule,
+                                   background: day[si] ? C.green : "transparent",
+                                   color: day[si] ? C.card : C.ink,
+                                   fontSize:12, cursor:"pointer", borderRadius:2,
+                                   transition:"all 0.2s", lineHeight:1.2 }}>
+                    {slot}
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+function WaterCard({ cat, days, data, update }) {
+  const goalOz       = Math.max(1, Math.round((cat.weightLbs || 0) / 2));
+  const bottleOz     = Math.max(1, cat.bottleOz || 1);
+  const bottlesGoal  = Math.max(1, Math.ceil(goalOz / bottleOz));
+  const v = data.values;
+  const hitDays = v.filter(b => b >= bottlesGoal).length;
+  const setN = (i, n) => update(d => {
+    const nv = [...d.values];
+    nv[i] = Math.max(0, Math.min(bottlesGoal + 2, n));
+    return { ...d, values: nv };
+  });
+  return (
+    <Section title={cat.name} subtitle={`${bottlesGoal} × ${bottleOz}oz = ${bottlesGoal*bottleOz}oz / day`}>
+      <div style={{ padding:"8px 16px 16px" }}>
+        <div style={{ fontSize:12, color:C.muted, marginBottom:12, fontStyle:"italic" }}>
+          Tap a bottle each time you finish one. Goal: <strong>{goalOz} oz/day</strong> ({hitDays}/7 days hit).
+        </div>
+        {days.map((d, i) => {
+          const bottles = v[i];
+          const oz = bottles * bottleOz;
+          const hit = bottles >= bottlesGoal;
+          return (
+            <div key={i} style={{ padding:"12px 0", borderBottom: i === 6 ? "none" : "1px solid "+C.line,
+                                  display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
+              <div style={{ fontSize:13, minWidth:80 }}>
+                <strong>{d.name.slice(0,3)}</strong> <span style={{ color:C.muted }}>{d.date}</span>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap", justifyContent:"flex-end" }}>
+                {Array.from({ length: bottlesGoal }).map((_, n) => (
+                  <Bottle key={n} filled={n < bottles}
+                          onClick={() => setN(i, n + 1 === bottles ? n : n + 1)} />
+                ))}
+                <span style={{ fontSize:12, color: hit ? C.green : C.muted,
+                              minWidth:60, textAlign:"right", fontVariantNumeric:"tabular-nums",
+                              fontWeight: hit ? 600 : 400 }}>
+                  {oz} oz {hit && "✓"}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+function Bottle({ filled, onClick }) {
+  return (
+    <svg width="18" height="28" viewBox="0 0 18 28" onClick={onClick} style={{ cursor:"pointer" }}>
+      <rect x="6" y="1" width="6" height="3" fill={C.muted} rx="0.5" />
+      <rect x="7" y="4" width="4" height="3" fill={filled ? C.blue : C.rule} />
+      <rect x="2" y="7" width="14" height="19" rx="2"
+            fill={filled ? C.blue : "none"}
+            stroke={filled ? C.blue : C.rule}
+            strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function CounterCard({ cat, days, data, update }) {
+  const v = data.values;
+  const max = Math.max(1, cat.max || 3);
+  const IconC = ICONS[cat.icon] || IconCoffee;
+  const setN = (i, n) => update(d => {
+    const nv = [...d.values];
+    nv[i] = Math.max(0, Math.min(max, n));
+    return { ...d, values: nv };
+  });
+  return (
+    <Section title={cat.name} subtitle={cat.subtitle || `Up to ${max}`}>
+      <div style={{ padding:"8px 16px 16px" }}>
+        {days.map((d, i) => {
+          const cups = v[i];
+          return (
+            <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                                  padding:"12px 0", borderBottom: i === 6 ? "none" : "1px solid "+C.line }}>
+              <div style={{ fontSize:13 }}>
+                <strong>{d.name.slice(0,3)}</strong> <span style={{ color:C.muted }}>{d.date}</span>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                {Array.from({ length: max }).map((_, idx) => {
+                  const n = idx + 1;
+                  const on = n <= cups;
+                  return (
+                    <span key={n} onClick={() => setN(i, n === cups ? n - 1 : n)}
+                          style={{ cursor:"pointer", display:"inline-flex" }}>
+                      <IconC size={20} color={on ? C.brown : C.rule} fill={on ? C.brown : "none"} />
+                    </span>
+                  );
+                })}
+                <span style={{ fontSize:12, color:C.muted, marginLeft:8, minWidth:20, fontVariantNumeric:"tabular-nums" }}>
+                  {cups}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+function CheckCard({ cat, days, data, update }) {
+  const v = data.values;
+  const count = v.filter(Boolean).length;
+  const IconC = ICONS[cat.icon] || IconCheck;
+  const isDark = cat.icon === "moon";
+  const onColor = isDark ? C.dark : C.green;
+  const toggle = (i) => update(d => {
+    const nv = [...d.values]; nv[i] = !nv[i]; return { ...d, values: nv };
+  });
+  return (
+    <Section title={cat.name} subtitle={`${count} / 7 days`}>
+      <div style={{ padding:"16px" }}>
+        {cat.subtitle && (
+          <div style={{ fontSize:12, color:C.muted, marginBottom:16, fontStyle:"italic" }}>{cat.subtitle}</div>
+        )}
+        <div style={{ display:"flex", justifyContent:"space-between", gap:4 }}>
+          {days.map((d, i) => {
+            const done = v[i];
+            return (
+              <button key={i} onClick={() => toggle(i)}
+                      style={{ flex:1, padding:"10px 2px 8px",
+                               border:"1px solid "+C.rule,
+                               background: done ? onColor : "transparent",
+                               color: done ? C.card : C.ink,
+                               cursor:"pointer", borderRadius:2, transition:"all 0.2s",
+                               display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+                <IconC size={22} color={done ? C.bgTop : C.muted}
+                       fill={done && isDark ? C.gold : "none"} />
+                <span style={{ fontSize:11, fontWeight:600 }}>{d.name.slice(0,1)}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+/* =================== SETTINGS PAGE =================== */
+function Settings({ store, updateCategories, onBack, onEdit }) {
+  const [adding, setAdding] = useState(false);
+  return (
+    <Page>
+      <div style={{ maxWidth:640, margin:"0 auto" }}>
+        <TopBar onBack={onBack} title="Edit your tracker" />
+
+        <div style={{ background:C.card, border:"1px solid "+C.line, borderRadius:2, padding:"8px 0" }}>
+          {store.categories.map((cat, idx) => (
+            <div key={cat.id}
+                 style={{ padding:"14px 16px", borderBottom: idx === store.categories.length - 1 ? "none" : "1px solid "+C.line,
+                          display:"flex", alignItems:"center", gap:12 }}>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:15, fontWeight:600, fontStyle:"italic" }}>{cat.name}</div>
+                <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>
+                  {labelForType(cat)}
+                </div>
+              </div>
+              <button onClick={() => onEdit(cat.id)} style={pillBtn()}>Edit</button>
+              <button title="Delete category"
+                      onClick={() => {
+                        if (!confirm(`Delete "${cat.name}"? This removes its data.`)) return;
+                        updateCategories(cs => cs.filter(c => c.id !== cat.id));
+                      }}
+                      style={{ ...pillBtn(), color:"#a04040", borderColor:"#d4b0a0" }}>
+                <IconTrash size={14} color="#a04040" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop:20 }}>
+          {!adding ? (
+            <button onClick={() => setAdding(true)}
+                    style={{ ...pillBtn(), padding:"12px 16px", display:"inline-flex", alignItems:"center", gap:8 }}>
+              <IconPlus size={14} color={C.muted}/> Add a category
+            </button>
+          ) : (
+            <NewCategoryForm
+              onCancel={() => setAdding(false)}
+              onCreate={(cat) => { updateCategories(cs => [...cs, cat]); setAdding(false); onEdit(cat.id); }}
+            />
+          )}
+        </div>
+
+        <div style={{ marginTop:32, fontSize:11, color:C.gold, textAlign:"center", letterSpacing:1, fontStyle:"italic" }}>
+          Changes save automatically.
+        </div>
+      </div>
+    </Page>
+  );
+}
+
+function labelForType(c) {
+  if (c.type === "movement") return "Daily activity (one per day)";
+  if (c.type === "slots")    return `Multiple slots per day · ${c.slots.length} slots`;
+  if (c.type === "water")    return `Water · weight ${c.weightLbs || "?"} lb · ${c.bottleOz || "?"} oz bottle`;
+  if (c.type === "counter")  return `Counter (up to ${c.max || 3})`;
+  if (c.type === "check")    return "Daily yes/no";
+  return c.type;
+}
+
+function NewCategoryForm({ onCreate, onCancel }) {
+  const [name, setName] = useState("");
+  const [type, setType] = useState("check");
+  const submit = () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const id = "cat_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+    let cat = { id, name: trimmed, type };
+    if (type === "check")    cat = { ...cat, subtitle: "", icon: "book" };
+    if (type === "counter")  cat = { ...cat, subtitle: "", max: 3, icon: "coffee" };
+    if (type === "slots")    cat = { ...cat, subtitle: "", slots: ["Slot 1","Slot 2","Slot 3"] };
+    if (type === "water")    cat = { ...cat, subtitle: "Half your weight in ounces", weightLbs: 150, bottleOz: 24 };
+    if (type === "movement") cat = { ...cat, subtitle: "5+ days a week",
+      perDay: Array.from({length:7}).map(() => ({ label:"Move", duration:"30 min", icon:"activity" })) };
+    onCreate(cat);
+  };
+  return (
+    <div style={{ background:C.card, border:"1px solid "+C.line, padding:16, borderRadius:2 }}>
+      <Field label="Name">
+        <input value={name} autoFocus onChange={e => setName(e.target.value)}
+               placeholder="e.g. Stretching"
+               style={inputStyle()} />
+      </Field>
+      <Field label="Type">
+        <select value={type} onChange={e => setType(e.target.value)} style={inputStyle()}>
+          <option value="check">Daily yes/no (e.g. Read 5 min, Phone away)</option>
+          <option value="counter">Counter (e.g. Coffee — up to N)</option>
+          <option value="slots">Multiple slots per day (e.g. Fruit/Veg)</option>
+          <option value="water">Water (weight-based)</option>
+          <option value="movement">Movement (different activity per day)</option>
+        </select>
+      </Field>
+      <div style={{ display:"flex", gap:8, marginTop:12 }}>
+        <button onClick={submit} style={primaryBtn()}>Add</button>
+        <button onClick={onCancel} style={pillBtn()}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+/* =================== CATEGORY EDITOR =================== */
+function CategoryEditor({ store, catId, updateCategories, onBack }) {
+  const cat = store.categories.find(c => c.id === catId);
+  if (!cat) return <Page><TopBar onBack={onBack} title="Not found" /></Page>;
+
+  const patch = (changes) => updateCategories(cs => cs.map(c => c.id === catId ? { ...c, ...changes } : c));
+
+  return (
+    <Page>
+      <div style={{ maxWidth:640, margin:"0 auto" }}>
+        <TopBar onBack={onBack} title={`Edit · ${cat.name}`} />
+
+        <div style={{ background:C.card, border:"1px solid "+C.line, padding:16, borderRadius:2 }}>
+          <Field label="Name">
+            <input value={cat.name} onChange={e => patch({ name: e.target.value })} style={inputStyle()} />
+          </Field>
+          <Field label="Subtitle (small text shown under the title)">
+            <input value={cat.subtitle || ""} onChange={e => patch({ subtitle: e.target.value })}
+                   placeholder="(optional)" style={inputStyle()} />
+          </Field>
+
+          {cat.type === "counter" && (
+            <>
+              <Field label="Max per day">
+                <input type="number" min="1" max="20" value={cat.max}
+                       onChange={e => patch({ max: clampInt(e.target.value, 1, 20, 3) })}
+                       style={inputStyle()} />
+              </Field>
+              <Field label="Icon">
+                <IconPicker value={cat.icon} onChange={v => patch({ icon: v })} />
+              </Field>
+            </>
+          )}
+
+          {cat.type === "check" && (
+            <Field label="Icon">
+              <IconPicker value={cat.icon} onChange={v => patch({ icon: v })} />
+            </Field>
+          )}
+
+          {cat.type === "water" && (
+            <>
+              <Field label="Your weight (lbs)">
+                <input type="number" min="40" max="500" value={cat.weightLbs}
+                       onChange={e => patch({ weightLbs: clampInt(e.target.value, 40, 500, 150) })}
+                       style={inputStyle()} />
+                <div style={hintStyle()}>Daily goal = weight ÷ 2 oz.
+                  Right now: <strong>{Math.round((cat.weightLbs||0)/2)} oz/day</strong>.</div>
+              </Field>
+              <Field label="Water bottle size (oz)">
+                <input type="number" min="4" max="128" value={cat.bottleOz}
+                       onChange={e => patch({ bottleOz: clampInt(e.target.value, 4, 128, 24) })}
+                       style={inputStyle()} />
+                <div style={hintStyle()}>
+                  Bottles to fill per day: <strong>{Math.max(1, Math.ceil(((cat.weightLbs||0)/2) / Math.max(1, cat.bottleOz||1)))}</strong>
+                </div>
+              </Field>
+            </>
+          )}
+
+          {cat.type === "slots" && (
+            <Field label="Slots (one per row — these are the buttons you tap each day)">
+              <SlotsEditor slots={cat.slots} onChange={(slots) => patch({ slots })} />
+            </Field>
+          )}
+
+          {cat.type === "movement" && (
+            <Field label="Activity for each day of the week">
+              <PerDayEditor perDay={cat.perDay} onChange={(perDay) => patch({ perDay })} />
+            </Field>
+          )}
+        </div>
+      </div>
+    </Page>
+  );
+}
+
+function SlotsEditor({ slots, onChange }) {
+  const set = (i, v) => onChange(slots.map((s, idx) => idx === i ? v : s));
+  const add = () => onChange([...slots, "Slot " + (slots.length + 1)]);
+  const remove = (i) => onChange(slots.filter((_, idx) => idx !== i));
+  return (
+    <div>
+      {slots.map((s, i) => (
+        <div key={i} style={{ display:"flex", gap:6, marginBottom:6 }}>
+          <input value={s} onChange={e => set(i, e.target.value)} style={{ ...inputStyle(), flex:1 }} />
+          <button onClick={() => remove(i)} disabled={slots.length <= 1}
+                  style={{ ...pillBtn(), opacity: slots.length <= 1 ? 0.4 : 1 }}>
+            <IconTrash size={14} color={C.muted}/>
+          </button>
+        </div>
+      ))}
+      <button onClick={add} style={{ ...pillBtn(), marginTop:4, display:"inline-flex", alignItems:"center", gap:6 }}>
+        <IconPlus size={14} color={C.muted}/> Add slot
+      </button>
+    </div>
+  );
+}
+
+function PerDayEditor({ perDay, onChange }) {
+  const set = (i, key, val) => onChange(perDay.map((d, idx) => idx === i ? { ...d, [key]: val } : d));
+  return (
+    <div>
+      {DAY_NAMES.map((name, i) => {
+        const d = perDay[i] || { label:"", duration:"", icon:"activity" };
+        return (
+          <div key={i} style={{ borderBottom:"1px solid "+C.line, padding:"10px 0" }}>
+            <div style={{ fontSize:12, fontWeight:600, color:C.ink, marginBottom:6 }}>{name}</div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginBottom:6 }}>
+              <input value={d.label} placeholder="Activity (e.g. Hike)"
+                     onChange={e => set(i, "label", e.target.value)} style={inputStyle()} />
+              <input value={d.duration} placeholder="Duration (e.g. 60 min)"
+                     onChange={e => set(i, "duration", e.target.value)} style={inputStyle()} />
+            </div>
+            <IconPicker value={d.icon} onChange={(v) => set(i, "icon", v)} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function IconPicker({ value, onChange }) {
+  return (
+    <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+      {ICON_CHOICES.map(k => {
+        const I = ICONS[k];
+        const active = value === k;
+        return (
+          <button key={k} onClick={() => onChange(k)}
+                  style={{ width:36, height:36, padding:0,
+                           border:"1px solid "+C.rule,
+                           background: active ? C.green : "transparent",
+                           borderRadius:2, cursor:"pointer", display:"inline-flex",
+                           alignItems:"center", justifyContent:"center" }}>
+            <I size={18} color={active ? C.card : C.muted} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* =================== SHARED PIECES =================== */
+function Page({ children }) {
+  return (
+    <div style={{
+      minHeight:"100vh",
+      background:`linear-gradient(180deg, ${C.bgTop} 0%, ${C.bgBot} 100%)`,
+      fontFamily:FONT, color:C.ink, padding:"32px 20px",
+    }}>{children}</div>
+  );
+}
+
+function TopBar({ onBack, title }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
+      <button onClick={onBack} style={{ ...pillBtn(), display:"inline-flex", alignItems:"center", gap:6 }}>
+        <IconArrowLeft size={14} color={C.muted}/> Back
+      </button>
+      <h1 style={{ margin:0, fontSize:22, fontWeight:400, fontStyle:"italic" }}>{title}</h1>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div style={{ marginBottom:14 }}>
+      <div style={{ fontSize:11, color:C.muted, letterSpacing:1, textTransform:"uppercase", marginBottom:6 }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function inputStyle() {
+  return { width:"100%", padding:"10px 12px", border:"1px solid "+C.rule,
+           background:"#fffdf7", borderRadius:2, fontSize:14, color:C.ink, boxSizing:"border-box" };
+}
+function pillBtn() {
+  return { padding:"8px 12px", border:"1px solid "+C.rule, background:"transparent",
+           borderRadius:2, color:C.muted, fontSize:12, letterSpacing:1, textTransform:"uppercase",
+           cursor:"pointer" };
+}
+function primaryBtn() {
+  return { padding:"10px 16px", border:"none", background:C.green, color:C.card,
+           borderRadius:2, fontSize:13, letterSpacing:1, textTransform:"uppercase", cursor:"pointer" };
+}
+function hintStyle() { return { fontSize:11, color:C.muted, marginTop:6, fontStyle:"italic" }; }
+function clampInt(v, min, max, fb) {
+  const n = parseInt(v, 10);
+  if (isNaN(n)) return fb;
+  return Math.max(min, Math.min(max, n));
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

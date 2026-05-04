@@ -3,20 +3,33 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Piker — your week of little wins</title>
-<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>✨</text></svg>" />
+<title>Piker — track your week. don't be a piker!</title>
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='10' y='10' width='30' height='30' fill='%232d4a2b'/><rect x='40' y='10' width='30' height='30' fill='%23e8b633'/><rect x='10' y='40' width='30' height='30' fill='%231f3a6b'/><rect x='40' y='40' width='30' height='30' fill='%23d8623a'/></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  html, body, #root { margin:0; padding:0; min-height:100%; }
+  html, body, #root { margin:0; padding:0; min-height:100%; background:#fafaf5; }
   body {
     -webkit-font-smoothing: antialiased;
-    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    color: #1a1a1a;
+    font-size: 14px;
+    line-height: 1.5;
   }
-  button, input, select { font-family: inherit; }
-  .hand { font-family: "Caveat", "Bradley Hand", cursive; }
+  button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+  input, select, textarea {
+    border: none;
+    border-bottom: 1px solid #c8c8c8;
+    background: transparent;
+    padding: 8px 0;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 0;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-bottom-color: #1a1a1a; }
   a { color: inherit; }
+  ::selection { background: #e8b633; color: #1a1a1a; }
 </style>
 </head>
 <body>
@@ -27,38 +40,36 @@
 <script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
 
 <script type="text/babel" data-presets="react">
-const { useState, useEffect, useMemo } = React;
+const { useState, useEffect } = React;
 
-const STORAGE_KEY = "piker_app_v3";
+const STORAGE_KEY = "piker_app_v4";
 const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const DAY_SHORT = ["S","M","T","W","T","F","S"];
 
 /* ---------- Inline SVG icons ---------- */
 const Icon = ({ d, size = 18, color = "currentColor", fill = "none", stroke = 2, style }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color}
-       strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" style={style}>
-    {d}
-  </svg>
+       strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" style={style}>{d}</svg>
 );
-const IconCheck     = (p) => <Icon {...p} d={<polyline points="20 6 9 17 4 12"/>} />;
-const IconCoffee    = (p) => <Icon {...p} d={<><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></>} />;
-const IconBook      = (p) => <Icon {...p} d={<><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></>} />;
-const IconMoon      = (p) => <Icon {...p} d={<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>} />;
-const IconActivity  = (p) => <Icon {...p} d={<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>} />;
-const IconWaves     = (p) => <Icon {...p} d={<><path d="M2 6c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M2 12c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M2 18c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/></>} />;
-const IconMountain  = (p) => <Icon {...p} d={<path d="M8 3l4 8 5-5 5 15H2L8 3z"/>} />;
-const IconWind      = (p) => <Icon {...p} d={<><path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M12.59 19.41A2 2 0 1 0 14 16H2"/><path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></>} />;
-const IconReset     = (p) => <Icon {...p} d={<><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></>} />;
-const IconSettings  = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>} />;
-const IconPlus      = (p) => <Icon {...p} d={<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>} />;
-const IconTrash     = (p) => <Icon {...p} d={<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></>} />;
-const IconArrowLeft = (p) => <Icon {...p} d={<><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>} />;
-const IconChevL     = (p) => <Icon {...p} d={<polyline points="15 18 9 12 15 6"/>} />;
-const IconChevR     = (p) => <Icon {...p} d={<polyline points="9 18 15 12 9 6"/>} />;
-const IconChart     = (p) => <Icon {...p} d={<><line x1="3" y1="3" x2="3" y2="21"/><line x1="3" y1="21" x2="21" y2="21"/><polyline points="7 14 11 10 14 13 20 6"/></>} />;
-const IconSun       = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M5 5l1.5 1.5"/><path d="M17.5 17.5L19 19"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M5 19l1.5-1.5"/><path d="M17.5 6.5L19 5"/></>} />;
-const IconLeaf      = (p) => <Icon {...p} d={<><path d="M11 20A7 7 0 0 1 4 13c0-5 4-9 9-9a9 9 0 0 1 8 8c0 4-3 8-7 8z"/><path d="M2 22s2-4 9-7"/></>} />;
-const IconHeart     = (p) => <Icon {...p} d={<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>} />;
+const IconCheck = (p) => <Icon {...p} d={<polyline points="20 6 9 17 4 12"/>}/>;
+const IconCoffee = (p) => <Icon {...p} d={<><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></>}/>;
+const IconBook = (p) => <Icon {...p} d={<><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></>}/>;
+const IconMoon = (p) => <Icon {...p} d={<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>}/>;
+const IconActivity = (p) => <Icon {...p} d={<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>}/>;
+const IconWaves = (p) => <Icon {...p} d={<><path d="M2 6c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M2 12c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/><path d="M2 18c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 4 2"/></>}/>;
+const IconMountain = (p) => <Icon {...p} d={<path d="M8 3l4 8 5-5 5 15H2L8 3z"/>}/>;
+const IconWind = (p) => <Icon {...p} d={<><path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M12.59 19.41A2 2 0 1 0 14 16H2"/><path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></>}/>;
+const IconReset = (p) => <Icon {...p} d={<><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></>}/>;
+const IconSettings = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>}/>;
+const IconPlus = (p) => <Icon {...p} d={<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>}/>;
+const IconTrash = (p) => <Icon {...p} d={<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></>}/>;
+const IconArrowLeft = (p) => <Icon {...p} d={<><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>}/>;
+const IconChevL = (p) => <Icon {...p} d={<polyline points="15 18 9 12 15 6"/>}/>;
+const IconChevR = (p) => <Icon {...p} d={<polyline points="9 18 15 12 9 6"/>}/>;
+const IconChart = (p) => <Icon {...p} d={<><line x1="3" y1="3" x2="3" y2="21"/><line x1="3" y1="21" x2="21" y2="21"/><polyline points="7 14 11 10 14 13 20 6"/></>}/>;
+const IconSun = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M5 5l1.5 1.5"/><path d="M17.5 17.5L19 19"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M5 19l1.5-1.5"/><path d="M17.5 6.5L19 5"/></>}/>;
+const IconLeaf = (p) => <Icon {...p} d={<><path d="M11 20A7 7 0 0 1 4 13c0-5 4-9 9-9a9 9 0 0 1 8 8c0 4-3 8-7 8z"/><path d="M2 22s2-4 9-7"/></>}/>;
+const IconHeart = (p) => <Icon {...p} d={<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>}/>;
 
 const ICONS = {
   activity: IconActivity, waves: IconWaves, mountain: IconMountain, wind: IconWind,
@@ -88,45 +99,38 @@ function buildDaysForWeek(weekStart) {
   });
 }
 
-/* ---------- Color tokens ---------- */
+/* ---------- Color tokens — Pinterest-inspired ---------- */
 const C = {
-  bgTop:   "#fffaf0",
-  bgBot:   "#fff3df",
-  card:    "#fffdf7",
-  ink:     "#2d2418",
-  inkSoft: "#5d4e35",
-  muted:   "#8a7a5c",
-  line:    "#f0e4cc",
-  rule:    "#e6d8b8",
-  yellow:  "#f5c518",
-  yellowSoft: "#fff1bf",
-  sage:    "#7a9670",
-  sageSoft:"#dde7d6",
-  sky:     "#5b8db8",
-  skySoft: "#d6e5f1",
-  orange:  "#e8804a",
-  orangeSoft: "#fadcc7",
-  coral:   "#e88a82",
-  coralSoft:"#fbdcd8",
+  bg:      "#fafaf5",
+  bgAlt:   "#ffffff",
+  card:    "#ffffff",
+  ink:     "#1a1a1a",
+  inkSoft: "#3d3d3d",
+  muted:   "#8a8a82",
+  line:    "#ececec",
+  rule:    "#d4d4d4",
 };
 const ACCENTS = {
-  sage:   { solid: C.sage,   soft: C.sageSoft,   onSolid: "#fffdf7" },
-  orange: { solid: C.orange, soft: C.orangeSoft, onSolid: "#fffdf7" },
-  sky:    { solid: C.sky,    soft: C.skySoft,    onSolid: "#fffdf7" },
-  coral:  { solid: C.coral,  soft: C.coralSoft,  onSolid: "#fffdf7" },
-  yellow: { solid: C.yellow, soft: C.yellowSoft, onSolid: "#2d2418" },
-  ink:    { solid: C.ink,    soft: "#e8e3d5",    onSolid: "#fffdf7" },
+  forest:     { solid: "#2d4a2b", soft: "#dde7d6", onSolid: "#fafaf5" },
+  olive:      { solid: "#6b7a3a", soft: "#e8e4cc", onSolid: "#fafaf5" },
+  mustard:    { solid: "#e8b633", soft: "#fff4d4", onSolid: "#1a1a1a" },
+  navy:       { solid: "#1f3a6b", soft: "#d6dce8", onSolid: "#fafaf5" },
+  royal:      { solid: "#3a64b8", soft: "#dbe4f4", onSolid: "#fafaf5" },
+  sky:        { solid: "#88b4d4", soft: "#e0eaf3", onSolid: "#1a1a1a" },
+  terracotta: { solid: "#d8623a", soft: "#f7d8c8", onSolid: "#fafaf5" },
+  coral:      { solid: "#e89890", soft: "#fbe0dc", onSolid: "#1a1a1a" },
+  ink:        { solid: "#1a1a1a", soft: "#e0e0e0", onSolid: "#fafaf5" },
 };
-const ACCENT_KEYS = ["sage","orange","sky","coral","yellow"];
-function accentOf(cat) { return ACCENTS[cat?.accent] || ACCENTS.sage; }
+const ACCENT_KEYS = ["forest","mustard","navy","terracotta","royal","olive","coral","sky","ink"];
+function accentOf(cat) { return ACCENTS[cat?.accent] || ACCENTS.forest; }
 
-/* ---------- Defaults ---------- */
+/* ---------- Defaults: 3 starter habits ---------- */
 function defaultCategories() {
   return [
     {
       id: "movement", name: "Movement", type: "movement",
       subtitle: "5+ days a week, however feels good",
-      accent: "sage",
+      accent: "forest",
       perDay: [
         { label: "Beach walk",        icon: "waves" },
         { label: "Pilates class",     icon: "activity" },
@@ -138,29 +142,16 @@ function defaultCategories() {
       ],
     },
     {
-      id: "fruitveg", name: "Fruit & Veg", type: "slots",
-      subtitle: "Fruit at breakfast, veg at lunch, veg at dinner.",
-      accent: "orange",
-      slotHeaders: ["breakfast", "lunch", "dinner"],
-      slots: ["fruit", "veg", "veg"],
-    },
-    {
       id: "water", name: "Water", type: "water",
-      subtitle: "Half your weight in ounces. That's the rule.",
-      accent: "sky",
+      subtitle: "half your weight in ounces. that's the rule.",
+      accent: "royal",
       weightLbs: 150, bottleOz: 24,
     },
     {
-      id: "reading", name: "Read 5 Min", type: "check",
-      subtitle: "Just five minutes. Quiets the mind.",
-      accent: "yellow",
+      id: "reading", name: "Reading", type: "check",
+      subtitle: "5 minutes a day. quiets the mind.",
+      accent: "mustard",
       icon: "book",
-    },
-    {
-      id: "phone", name: "Phone Away @ 9pm", type: "check",
-      subtitle: "Down by 9pm. Better sleep, better mornings.",
-      accent: "ink",
-      icon: "moon",
     },
   ];
 }
@@ -188,27 +179,22 @@ function ensureWeek(store, wk) {
   return store;
 }
 
-function defaultStore() {
-  const cats = defaultCategories();
-  const wk = weekKey(new Date());
-  const data = {};
-  for (const c of cats) data[c.id] = defaultDataFor(c);
-  return { categories: cats, weeks: { [wk]: data } };
+function freshStore() {
+  return { categories: [], weeks: {}, onboarded: false };
 }
 
 function loadStore() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultStore();
+    if (!raw) return freshStore();
     const s = JSON.parse(raw);
-    if (!s.categories || !s.weeks) return defaultStore();
+    if (!s.categories || !s.weeks) return freshStore();
     for (const c of s.categories) {
-      if (!c.accent) c.accent = ACCENT_KEYS[Math.floor(Math.random()*ACCENT_KEYS.length)];
+      if (!c.accent || !ACCENTS[c.accent]) c.accent = ACCENT_KEYS[Math.floor(Math.random()*ACCENT_KEYS.length)];
     }
-    return ensureWeek(s, weekKey(new Date()));
-  } catch (e) {
-    return defaultStore();
-  }
+    if (s.onboarded) ensureWeek(s, weekKey(new Date()));
+    return s;
+  } catch (e) { return freshStore(); }
 }
 
 function saveStore(store) {
@@ -218,7 +204,7 @@ function saveStore(store) {
 /* =================== APP =================== */
 function App() {
   const [store, setStore] = useState(null);
-  const [view, setView]   = useState("home"); // home | settings | category-edit | stats
+  const [view, setView] = useState("home");
   const [editingId, setEditingId] = useState(null);
   const [viewingWeek, setViewingWeek] = useState(weekKey(new Date()));
   const realCurrentWeek = weekKey(new Date());
@@ -227,11 +213,21 @@ function App() {
   useEffect(() => { if (store) saveStore(store); }, [store]);
 
   if (!store) return (
-    <div style={{ minHeight:"100vh", background:C.bgTop, display:"flex", alignItems:"center",
-                  justifyContent:"center", color:C.ink }}>
-      <span className="hand" style={{ fontSize:32, color:C.sage }}>loading your week…</span>
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", color:C.muted }}>
+      loading…
     </div>
   );
+
+  if (!store.onboarded) {
+    return <Onboarding onComplete={(cats) => {
+      setStore(s => {
+        const next = { ...s, categories: cats, weeks: {}, onboarded: true };
+        ensureWeek(next, realCurrentWeek);
+        return next;
+      });
+      setView("home");
+    }}/>;
+  }
 
   const data = store.weeks[viewingWeek] || {};
   const days = buildDaysForWeek(new Date(viewingWeek + "T00:00:00"));
@@ -244,7 +240,6 @@ function App() {
     });
     setViewingWeek(wk);
   };
-
   const updateData = (catId, fn) => {
     setStore(s => {
       const next = { ...s, weeks: { ...s.weeks } };
@@ -265,9 +260,8 @@ function App() {
       return { ...s, categories: cats, weeks: { ...s.weeks, [viewingWeek]: wkData } };
     });
   };
-
   const resetWeek = () => {
-    if (!confirm("Wipe this week clean and start fresh?")) return;
+    if (!confirm("wipe this week clean and start fresh?")) return;
     setStore(s => {
       const fresh = {};
       for (const c of s.categories) fresh[c.id] = defaultDataFor(c);
@@ -275,30 +269,159 @@ function App() {
     });
   };
 
-  if (view === "settings") {
-    return <Settings store={store} updateCategories={updateCategories}
-                     onBack={() => setView("home")}
-                     onEdit={(id) => { setEditingId(id); setView("category-edit"); }} />;
-  }
-  if (view === "category-edit") {
-    return <CategoryEditor store={store} catId={editingId}
-                           updateCategories={updateCategories}
-                           onBack={() => setView("settings")} />;
-  }
-  if (view === "stats") {
-    return <Stats store={store} onBack={() => setView("home")} realCurrentWeek={realCurrentWeek}/>;
-  }
-  if (view === "about") {
-    return <About onBack={() => setView("home")}/>;
-  }
+  if (view === "settings")      return <Settings store={store} updateCategories={updateCategories} onBack={() => setView("home")} onEdit={(id) => { setEditingId(id); setView("category-edit"); }}/>;
+  if (view === "category-edit") return <CategoryEditor store={store} catId={editingId} updateCategories={updateCategories} onBack={() => setView("settings")}/>;
+  if (view === "stats")         return <Stats store={store} onBack={() => setView("home")} realCurrentWeek={realCurrentWeek}/>;
+  if (view === "about")         return <About onBack={() => setView("home")}/>;
   return <Home store={store} days={days} data={data}
                viewingWeek={viewingWeek} realCurrentWeek={realCurrentWeek}
-               goToWeek={goToWeek}
-               updateData={updateData}
+               goToWeek={goToWeek} updateData={updateData}
                onSettings={() => setView("settings")}
                onStats={() => setView("stats")}
                onAbout={() => setView("about")}
-               onReset={resetWeek} />;
+               onReset={resetWeek}/>;
+}
+
+/* =================== ONBOARDING =================== */
+function Onboarding({ onComplete }) {
+  const [step, setStep] = useState("welcome"); // welcome | setup
+  const [cats, setCats] = useState(defaultCategories());
+
+  if (step === "welcome") {
+    return (
+      <Page>
+        <div style={{ maxWidth:480, margin:"60px auto", padding:"0 8px" }}>
+          <ColorBlocks />
+          <h1 style={wordmarkStyle(78)}>PIKER</h1>
+          <p style={{ textAlign:"center", color:C.muted, fontSize:13, marginTop:10, letterSpacing:"0.02em" }}>
+            track your week. don't be a piker!
+          </p>
+
+          <div style={{ height:32 }}/>
+
+          <div style={cardStyle()}>
+            <p style={paraStyle()}>
+              piker is a really simple way to track the little things you're trying to do each week.
+            </p>
+            <p style={paraStyle()}>
+              not life goals. not a five-year plan. just… <strong>did i drink enough water this week? did i move my body? did i do the things i said i would do?</strong>
+            </p>
+            <p style={{ ...paraStyle(), marginBottom:0, fontStyle:"italic", color:C.inkSoft }}>
+              that's it. that's the whole app!
+            </p>
+          </div>
+
+          <div style={{ marginTop:24, textAlign:"center" }}>
+            <button onClick={() => setStep("setup")} style={primaryBtn()}>let's set up my week →</button>
+          </div>
+        </div>
+      </Page>
+    );
+  }
+
+  // setup step
+  const update = (id, changes) => setCats(cs => cs.map(c => c.id === id ? { ...c, ...changes } : c));
+  const remove = (id) => setCats(cs => cs.filter(c => c.id !== id));
+  const addCustom = () => {
+    const id = "cat_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+    const accent = ACCENT_KEYS[cats.length % ACCENT_KEYS.length];
+    setCats([...cats, { id, name: "New habit", type: "check", accent, subtitle: "", icon: "heart" }]);
+  };
+  const canContinue = cats.length >= 3;
+
+  return (
+    <Page>
+      <div style={{ maxWidth:560, margin:"40px auto", padding:"0 8px" }}>
+        <button onClick={() => setStep("welcome")} style={{ ...textBtn(), marginBottom:16 }}>
+          ← back
+        </button>
+        <h1 style={{ fontSize:22, fontWeight:700, margin:"0 0 4px", letterSpacing:"-0.01em" }}>
+          set up your week
+        </h1>
+        <p style={{ fontSize:12, color:C.muted, margin:"0 0 24px" }}>
+          start with at least 3 things to track. you can edit, add, or remove anytime.
+        </p>
+
+        {cats.map((cat) => (
+          <OnboardingCard key={cat.id} cat={cat}
+                          onChange={(changes) => update(cat.id, changes)}
+                          onRemove={() => remove(cat.id)}
+                          canRemove={cats.length > 1}/>
+        ))}
+
+        <div style={{ marginBottom:20 }}>
+          <button onClick={addCustom} style={{ ...secondaryBtn(), width:"100%" }}>
+            + add another habit
+          </button>
+        </div>
+
+        <div style={{ marginTop:32, textAlign:"center" }}>
+          <button onClick={() => onComplete(cats)} disabled={!canContinue}
+                  style={{ ...primaryBtn(), opacity: canContinue ? 1 : 0.4, cursor: canContinue ? "pointer" : "not-allowed" }}>
+            start tracking →
+          </button>
+          {!canContinue && (
+            <div style={{ fontSize:11, color:C.muted, marginTop:10 }}>
+              add at least 3 habits to continue
+            </div>
+          )}
+        </div>
+      </div>
+    </Page>
+  );
+}
+
+function OnboardingCard({ cat, onChange, onRemove, canRemove }) {
+  const a = accentOf(cat);
+  return (
+    <div style={{ background:C.card, border:"1px solid "+C.line, marginBottom:14, overflow:"hidden" }}>
+      <div style={{ background:a.solid, padding:"10px 14px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <span style={{ fontSize:11, fontWeight:700, color:a.onSolid, letterSpacing:"0.12em", textTransform:"uppercase" }}>
+          {labelForType(cat)}
+        </span>
+        <button onClick={onRemove} disabled={!canRemove} title="remove"
+                style={{ background:"transparent", border:"none", padding:4, cursor: canRemove ? "pointer" : "not-allowed",
+                         opacity: canRemove ? 0.85 : 0.3, display:"inline-flex", color:a.onSolid }}>
+          <IconTrash size={14} color={a.onSolid}/>
+        </button>
+      </div>
+      <div style={{ padding:"14px 16px" }}>
+        <Field label="name">
+          <input value={cat.name} onChange={e => onChange({ name: e.target.value })}/>
+        </Field>
+        <Field label="color">
+          <ColorPicker value={cat.accent} onChange={(v) => onChange({ accent: v })}/>
+        </Field>
+
+        {cat.type === "water" && (
+          <>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+              <Field label="your weight (lbs)">
+                <input type="number" min="40" max="500" value={cat.weightLbs}
+                       onChange={e => onChange({ weightLbs: clampInt(e.target.value, 40, 500, 150) })}/>
+              </Field>
+              <Field label="bottle size (oz)">
+                <input type="number" min="4" max="128" value={cat.bottleOz}
+                       onChange={e => onChange({ bottleOz: clampInt(e.target.value, 4, 128, 24) })}/>
+              </Field>
+            </div>
+            <div style={hintStyle()}>
+              goal: {Math.round((cat.weightLbs||0)/2)} oz/day
+              {" · "}
+              {Math.max(1, Math.floor(((cat.weightLbs||0)/2) / Math.max(1, cat.bottleOz||1)))} bottles
+            </div>
+          </>
+        )}
+
+        {(cat.type === "check" || cat.type === "counter") && (
+          <Field label="note (optional)">
+            <input value={cat.subtitle || ""} placeholder="(optional)"
+                   onChange={e => onChange({ subtitle: e.target.value })}/>
+          </Field>
+        )}
+      </div>
+    </div>
+  );
 }
 
 /* =================== HOME =================== */
@@ -308,49 +431,35 @@ function Home({ store, days, data, viewingWeek, realCurrentWeek, goToWeek,
   const weekRangeLabel = `${days[0].date} — ${days[6].date}`;
   const isCurrent = viewingWeek === realCurrentWeek;
   const isFuture  = viewingWeek > realCurrentWeek;
-
   const goPrev = () => goToWeek(shiftWeek(viewingWeek, -7));
   const goNext = () => { if (!isCurrent && !isFuture) goToWeek(shiftWeek(viewingWeek, 7)); };
 
   return (
     <Page>
       <div style={{ maxWidth:640, margin:"0 auto" }}>
-        <header style={{ textAlign:"center", marginBottom:20, position:"relative" }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
-            <button onClick={onStats} style={iconBtn()} title="Stats">
-              <IconChart size={16} color={C.muted}/>
-            </button>
-            <div style={{ flex:1 }}/>
-            <button onClick={onSettings} style={iconBtn()} title="Edit">
-              <IconSettings size={16} color={C.muted}/>
-            </button>
+        <header style={{ marginBottom:24 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
+            <button onClick={onStats} style={iconBtn()} title="stats"><IconChart size={16} color={C.ink}/></button>
+            <button onClick={onSettings} style={iconBtn()} title="edit"><IconSettings size={16} color={C.ink}/></button>
           </div>
 
-          <h1 className="hand" style={{ fontSize:78, fontWeight:700, margin:0, color:C.ink, lineHeight:0.9 }}>
-            Piker
-          </h1>
-          <div style={{ fontSize:13, color:C.muted, marginTop:6, fontStyle:"italic" }}>
+          <ColorBlocks />
+          <h1 style={wordmarkStyle(72)}>PIKER</h1>
+          <p style={{ textAlign:"center", color:C.muted, fontSize:13, marginTop:10, marginBottom:0, letterSpacing:"0.02em" }}>
             track your week. don't be a piker!
-          </div>
-          <div style={{ display:"flex", justifyContent:"center", gap:6, marginTop:12 }}>
-            <Dot color={C.yellow} /><Dot color={C.sage} /><Dot color={C.sky} /><Dot color={C.orange} /><Dot color={C.coral} />
-          </div>
+          </p>
 
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, marginTop:18 }}>
-            <button onClick={goPrev} style={iconBtn()} title="Previous week">
-              <IconChevL size={16} color={C.ink}/>
-            </button>
-            <div style={{ minWidth:170, textAlign:"center" }}>
-              <div style={{ fontSize:11, letterSpacing:3, textTransform:"uppercase", color:C.muted, fontWeight:600 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:14, marginTop:28 }}>
+            <button onClick={goPrev} style={iconBtn()} title="previous week"><IconChevL size={16} color={C.ink}/></button>
+            <div style={{ minWidth:180, textAlign:"center" }}>
+              <div style={{ fontSize:10, letterSpacing:"0.18em", textTransform:"uppercase", color:C.muted, fontWeight:700 }}>
                 {isCurrent ? "this week" : (viewingWeek < realCurrentWeek ? "looking back" : "ahead")}
               </div>
-              <div style={{ fontSize:14, color:C.ink, marginTop:2, fontWeight:500 }}>
-                {weekRangeLabel}
-              </div>
+              <div style={{ fontSize:14, marginTop:4, fontWeight:500 }}>{weekRangeLabel}</div>
             </div>
             <button onClick={goNext} disabled={isCurrent || isFuture}
-                    style={{ ...iconBtn(), opacity: (isCurrent||isFuture) ? 0.3 : 1, cursor:(isCurrent||isFuture)?"default":"pointer" }}
-                    title={isCurrent ? "Already on this week" : "Next week"}>
+                    style={{ ...iconBtn(), opacity: (isCurrent||isFuture) ? 0.25 : 1, cursor:(isCurrent||isFuture)?"default":"pointer" }}
+                    title={isCurrent ? "already on this week" : "next week"}>
               <IconChevR size={16} color={C.ink}/>
             </button>
           </div>
@@ -359,76 +468,76 @@ function Home({ store, days, data, viewingWeek, realCurrentWeek, goToWeek,
         {cats.map((cat) => (
           <CategoryCard key={cat.id} cat={cat} days={days}
                         data={data[cat.id] || defaultDataFor(cat)}
-                        update={(fn) => updateData(cat.id, fn)} />
+                        update={(fn) => updateData(cat.id, fn)}/>
         ))}
 
-        <div style={{ textAlign:"center", marginTop:32 }}>
-          <button onClick={onReset} style={{
-            background:"transparent", border:"none", color:C.muted, fontSize:12, cursor:"pointer",
-            display:"inline-flex", alignItems:"center", gap:6, letterSpacing:1, textTransform:"uppercase",
-          }}>
-            <IconReset size={12} color={C.muted}/> Reset this week
+        <div style={{ textAlign:"center", marginTop:36 }}>
+          <button onClick={onReset} style={textBtn()}>
+            ↻ reset this week
           </button>
         </div>
 
-        <div style={{ textAlign:"center", marginTop:18, fontSize:11, color:C.muted, fontStyle:"italic" }}>
-          Saves automatically. No signup, no nothing.
+        <div style={{ textAlign:"center", marginTop:14, fontSize:11, color:C.muted }}>
+          saves automatically. no signup, no nothing.
         </div>
 
-        <div style={{ textAlign:"center", marginTop:14 }}>
-          <button onClick={onAbout} style={{
-            background:"transparent", border:"none", color:C.sage,
-            fontSize:12, cursor:"pointer", fontStyle:"italic", textDecoration:"underline",
-          }}>
-            why piker?
-          </button>
+        <div style={{ textAlign:"center", marginTop:16 }}>
+          <button onClick={onAbout} style={{ ...textBtn(), textDecoration:"underline" }}>why piker?</button>
         </div>
 
-        <Footer />
+        <Footer/>
       </div>
     </Page>
   );
 }
 
-function Dot({ color }) {
-  return <span style={{ width:10, height:10, borderRadius:"50%", background:color, display:"inline-block" }} />;
+function ColorBlocks() {
+  const blocks = ["forest","mustard","navy","terracotta","royal"];
+  return (
+    <div style={{ display:"flex", justifyContent:"center", gap:0, marginBottom:14 }}>
+      {blocks.map(k => (
+        <span key={k} style={{ width:36, height:14, background: ACCENTS[k].solid }}/>
+      ))}
+    </div>
+  );
+}
+
+function wordmarkStyle(size) {
+  return { fontSize:size, fontWeight:800, margin:0, color:C.ink,
+           letterSpacing:"0.06em", textAlign:"center", lineHeight:1, fontFamily:"inherit" };
 }
 
 function Footer() {
   return (
     <div style={{ textAlign:"center", marginTop:36, paddingTop:24, borderTop:"1px solid "+C.line,
-                  fontSize:12, color:C.muted, fontStyle:"italic" }}>
+                  fontSize:11, color:C.muted }}>
       made with love by{" "}
       <a href="https://coletteperi.com" target="_blank" rel="noopener noreferrer"
-         style={{ color:C.sage, textDecoration:"underline", fontWeight:500 }}>
-        coco peri
-      </a>{" "}✨
+         style={{ color:C.ink, textDecoration:"underline" }}>coco peri</a>
     </div>
   );
 }
 
 /* =================== CATEGORY CARDS =================== */
 function CategoryCard({ cat, days, data, update }) {
-  if (cat.type === "movement") return <MovementCard cat={cat} days={days} data={data} update={update} />;
-  if (cat.type === "slots")    return <SlotsCard    cat={cat} days={days} data={data} update={update} />;
-  if (cat.type === "water")    return <WaterCard    cat={cat} days={days} data={data} update={update} />;
-  if (cat.type === "counter")  return <CounterCard  cat={cat} days={days} data={data} update={update} />;
-  if (cat.type === "check")    return <CheckCard    cat={cat} days={days} data={data} update={update} />;
+  if (cat.type === "movement") return <MovementCard cat={cat} days={days} data={data} update={update}/>;
+  if (cat.type === "slots")    return <SlotsCard cat={cat} days={days} data={data} update={update}/>;
+  if (cat.type === "water")    return <WaterCard cat={cat} days={days} data={data} update={update}/>;
+  if (cat.type === "counter")  return <CounterCard cat={cat} days={days} data={data} update={update}/>;
+  if (cat.type === "check")    return <CheckCard cat={cat} days={days} data={data} update={update}/>;
   return null;
 }
 
 function Section({ title, subtitle, accent, children }) {
-  const a = accent || ACCENTS.sage;
+  const a = accent || ACCENTS.forest;
   return (
-    <div style={{ marginBottom:24, background:C.card, borderRadius:14,
-                  border:"1px solid "+C.line, overflow:"hidden",
-                  boxShadow:"0 1px 0 rgba(0,0,0,0.02)" }}>
-      <div style={{ height:6, background:a.solid }} />
-      <div style={{ padding:"16px 16px 14px", borderBottom:"1px solid "+C.line,
-                    display:"flex", justifyContent:"space-between", alignItems:"center", gap:8,
-                    background: a.soft }}>
-        <h2 style={{ margin:0, fontSize:16, fontWeight:600, color:C.ink, letterSpacing:"-0.2px" }}>{title}</h2>
-        <span style={{ fontSize:11, color:C.inkSoft, letterSpacing:1, textTransform:"uppercase", textAlign:"right", fontWeight:600 }}>{subtitle}</span>
+    <div style={{ marginBottom:20, background:C.card, border:"1px solid "+C.line, overflow:"hidden" }}>
+      <div style={{ background:a.solid, padding:"14px 16px",
+                    display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:8 }}>
+        <h2 style={{ margin:0, fontSize:13, fontWeight:700, color:a.onSolid,
+                     letterSpacing:"0.14em", textTransform:"uppercase" }}>{title}</h2>
+        <span style={{ fontSize:10, color:a.onSolid, opacity:0.85, letterSpacing:"0.08em",
+                       textTransform:"uppercase", textAlign:"right", fontWeight:600 }}>{subtitle}</span>
       </div>
       {children}
     </div>
@@ -436,24 +545,21 @@ function Section({ title, subtitle, accent, children }) {
 }
 
 function Circle({ done, accent }) {
-  const a = accent || ACCENTS.sage;
+  const a = accent || ACCENTS.forest;
   return (
-    <div style={{ width:24, height:24, borderRadius:"50%",
-                  border:"1.5px solid "+(done ? a.solid : C.muted),
+    <div style={{ width:22, height:22, borderRadius:"50%",
+                  border: "1.5px solid "+(done ? a.solid : C.muted),
                   background: done ? a.solid : "transparent",
                   display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-      {done && <IconCheck size={14} color={a.onSolid} stroke={3} />}
+      {done && <IconCheck size={12} color={a.onSolid} stroke={3}/>}
     </div>
   );
 }
 
 function MovementCard({ cat, days, data, update }) {
-  const v = data.values;
-  const a = accentOf(cat);
+  const v = data.values, a = accentOf(cat);
   const count = v.filter(Boolean).length;
-  const toggle = (i) => update(d => {
-    const nv = [...d.values]; nv[i] = !nv[i]; return { ...d, values: nv };
-  });
+  const toggle = (i) => update(d => { const nv = [...d.values]; nv[i] = !nv[i]; return { ...d, values: nv }; });
   return (
     <Section title={cat.name} subtitle={`${count} / 7 days`} accent={a}>
       {days.map((d, i) => {
@@ -464,14 +570,14 @@ function MovementCard({ cat, days, data, update }) {
           <div key={i} onClick={() => toggle(i)}
                style={{ display:"flex", alignItems:"center", gap:14, padding:"14px 16px",
                         borderBottom: i === 6 ? "none" : "1px solid "+C.line,
-                        cursor:"pointer", opacity: done ? 0.55 : 1, transition:"opacity 0.2s" }}>
+                        cursor:"pointer", opacity: done ? 0.5 : 1 }}>
             <Circle done={done} accent={a}/>
-            <IconC size={18} color={a.solid} />
+            <IconC size={16} color={a.solid}/>
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:14, fontWeight:600, textDecoration: done ? "line-through" : "none" }}>
+              <div style={{ fontSize:13, fontWeight:600, textDecoration: done ? "line-through" : "none" }}>
                 {d.name} <span style={{ color:C.muted, fontWeight:400 }}>· {d.date}</span>
               </div>
-              <div style={{ fontSize:13, color:C.inkSoft, marginTop:2 }}>{dayCfg.label}</div>
+              <div style={{ fontSize:12, color:C.inkSoft, marginTop:2 }}>{dayCfg.label}</div>
             </div>
           </div>
         );
@@ -481,8 +587,7 @@ function MovementCard({ cat, days, data, update }) {
 }
 
 function SlotsCard({ cat, days, data, update }) {
-  const v = data.values;
-  const a = accentOf(cat);
+  const v = data.values, a = accentOf(cat);
   const headers = cat.slotHeaders && cat.slotHeaders.length === cat.slots.length ? cat.slotHeaders : null;
   const perfect = v.filter(d => Array.isArray(d) && d.length === cat.slots.length && d.every(Boolean)).length;
   const toggle = (di, si) => update(d => {
@@ -492,29 +597,25 @@ function SlotsCard({ cat, days, data, update }) {
     return { ...d, values: nv };
   });
   return (
-    <Section title={cat.name} subtitle={`${perfect} / 7 perfect days`} accent={a}>
+    <Section title={cat.name} subtitle={`${perfect} / 7 perfect`} accent={a}>
       <div style={{ padding:"12px 16px 4px" }}>
-        {cat.subtitle && (
-          <div style={{ fontSize:13, color:C.inkSoft, marginBottom:12, fontStyle:"italic" }}>
-            {cat.subtitle}
-          </div>
-        )}
+        {cat.subtitle && <div style={{ fontSize:12, color:C.inkSoft, marginBottom:12 }}>{cat.subtitle}</div>}
         {days.map((d, i) => {
           const day = Array.isArray(v[i]) ? v[i] : cat.slots.map(() => false);
           const allDone = day.length === cat.slots.length && day.every(Boolean);
           return (
             <div key={i} style={{ padding:"12px 0", borderBottom: i === 6 ? "none" : "1px solid "+C.line }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-                <div style={{ fontSize:13 }}>
-                  <strong>{d.name.slice(0,3)}</strong> <span style={{ color:C.muted }}>{d.date}</span>
+                <div style={{ fontSize:12 }}>
+                  <strong>{d.name.slice(0,3).toUpperCase()}</strong> <span style={{ color:C.muted }}>{d.date}</span>
                 </div>
-                {allDone && <span style={{ fontSize:11, color:a.solid, letterSpacing:1, textTransform:"uppercase", fontWeight:600 }}>✓ Perfect</span>}
+                {allDone && <span style={{ fontSize:10, color:a.solid, letterSpacing:"0.1em", textTransform:"uppercase", fontWeight:700 }}>✓ perfect</span>}
               </div>
               {headers && (
                 <div style={{ display:"flex", gap:6, marginBottom:4 }}>
                   {headers.map((h, hi) => (
-                    <div key={hi} style={{ flex:1, textAlign:"center", fontSize:10, color:C.muted,
-                                            letterSpacing:1, textTransform:"uppercase", fontWeight:600 }}>
+                    <div key={hi} style={{ flex:1, textAlign:"center", fontSize:9, color:C.muted,
+                                            letterSpacing:"0.12em", textTransform:"uppercase", fontWeight:700 }}>
                       {h}
                     </div>
                   ))}
@@ -523,12 +624,12 @@ function SlotsCard({ cat, days, data, update }) {
               <div style={{ display:"flex", gap:6 }}>
                 {cat.slots.map((slot, si) => (
                   <button key={si} onClick={() => toggle(i, si)}
-                          style={{ flex:1, padding:"10px 4px",
+                          style={{ flex:1, padding:"9px 4px",
                                    border:"1px solid "+(day[si] ? a.solid : C.rule),
                                    background: day[si] ? a.solid : "transparent",
                                    color: day[si] ? a.onSolid : C.ink,
-                                   fontSize:12, cursor:"pointer", borderRadius:8,
-                                   transition:"all 0.2s", lineHeight:1.2, fontWeight: day[si] ? 600 : 400 }}>
+                                   fontSize:11, cursor:"pointer", lineHeight:1.2,
+                                   fontWeight: day[si] ? 700 : 500 }}>
                     {slot}
                   </button>
                 ))}
@@ -553,10 +654,10 @@ function WaterCard({ cat, days, data, update }) {
     return { ...d, values: nv };
   });
   return (
-    <Section title={cat.name} subtitle={`${bottlesGoal} × ${bottleOz}oz = ${bottlesGoal*bottleOz}oz / day`} accent={a}>
-      <div style={{ padding:"8px 16px 16px" }}>
-        <div style={{ fontSize:13, color:C.inkSoft, marginBottom:12, fontStyle:"italic" }}>
-          Tap a bottle each time you finish one. Goal is half your weight in oz <strong>({goalOz} oz/day)</strong> — {hitDays}/7 days hit.
+    <Section title={cat.name} subtitle={`${bottlesGoal} × ${bottleOz}oz · ${hitDays}/7`} accent={a}>
+      <div style={{ padding:"10px 16px 16px" }}>
+        <div style={{ fontSize:12, color:C.inkSoft, marginBottom:12 }}>
+          tap a bottle each time you finish one. goal: <strong>{goalOz} oz/day</strong>.
         </div>
         {days.map((d, i) => {
           const bottles = v[i];
@@ -565,17 +666,17 @@ function WaterCard({ cat, days, data, update }) {
           return (
             <div key={i} style={{ padding:"12px 0", borderBottom: i === 6 ? "none" : "1px solid "+C.line,
                                   display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
-              <div style={{ fontSize:13, minWidth:80 }}>
-                <strong>{d.name.slice(0,3)}</strong> <span style={{ color:C.muted }}>{d.date}</span>
+              <div style={{ fontSize:12, minWidth:80 }}>
+                <strong>{d.name.slice(0,3).toUpperCase()}</strong> <span style={{ color:C.muted }}>{d.date}</span>
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap", justifyContent:"flex-end" }}>
                 {Array.from({ length: bottlesGoal }).map((_, n) => (
                   <Bottle key={n} filled={n < bottles} color={a.solid}
-                          onClick={() => setN(i, n + 1 === bottles ? n : n + 1)} />
+                          onClick={() => setN(i, n + 1 === bottles ? n : n + 1)}/>
                 ))}
-                <span style={{ fontSize:12, color: hit ? a.solid : C.muted,
-                              minWidth:60, textAlign:"right", fontVariantNumeric:"tabular-nums",
-                              fontWeight: hit ? 600 : 400 }}>
+                <span style={{ fontSize:11, color: hit ? a.solid : C.muted,
+                              minWidth:54, textAlign:"right", fontVariantNumeric:"tabular-nums",
+                              fontWeight: hit ? 700 : 500 }}>
                   {oz} oz {hit && "✓"}
                 </span>
               </div>
@@ -588,22 +689,19 @@ function WaterCard({ cat, days, data, update }) {
 }
 
 function Bottle({ filled, onClick, color }) {
-  const c = color || C.sky;
+  const c = color || ACCENTS.royal.solid;
   return (
     <svg width="18" height="28" viewBox="0 0 18 28" onClick={onClick} style={{ cursor:"pointer" }}>
-      <rect x="6" y="1" width="6" height="3" fill={C.muted} rx="0.5" />
-      <rect x="7" y="4" width="4" height="3" fill={filled ? c : C.rule} />
-      <rect x="2" y="7" width="14" height="19" rx="3"
-            fill={filled ? c : "none"}
-            stroke={filled ? c : C.rule}
-            strokeWidth="1.5" />
+      <rect x="6" y="1" width="6" height="3" fill={C.muted} rx="0.5"/>
+      <rect x="7" y="4" width="4" height="3" fill={filled ? c : C.rule}/>
+      <rect x="2" y="7" width="14" height="19" rx="2"
+            fill={filled ? c : "none"} stroke={filled ? c : C.rule} strokeWidth="1.5"/>
     </svg>
   );
 }
 
 function CounterCard({ cat, days, data, update }) {
-  const v = data.values;
-  const a = accentOf(cat);
+  const v = data.values, a = accentOf(cat);
   const max = Math.max(1, cat.max || 3);
   const IconC = ICONS[cat.icon] || IconCoffee;
   const setN = (i, n) => update(d => {
@@ -611,15 +709,15 @@ function CounterCard({ cat, days, data, update }) {
     return { ...d, values: nv };
   });
   return (
-    <Section title={cat.name} subtitle={cat.subtitle || `Up to ${max}`} accent={a}>
+    <Section title={cat.name} subtitle={cat.subtitle || `up to ${max}`} accent={a}>
       <div style={{ padding:"8px 16px 16px" }}>
         {days.map((d, i) => {
           const cups = v[i];
           return (
             <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
                                   padding:"12px 0", borderBottom: i === 6 ? "none" : "1px solid "+C.line }}>
-              <div style={{ fontSize:13 }}>
-                <strong>{d.name.slice(0,3)}</strong> <span style={{ color:C.muted }}>{d.date}</span>
+              <div style={{ fontSize:12 }}>
+                <strong>{d.name.slice(0,3).toUpperCase()}</strong> <span style={{ color:C.muted }}>{d.date}</span>
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                 {Array.from({ length: max }).map((_, idx) => {
@@ -628,11 +726,11 @@ function CounterCard({ cat, days, data, update }) {
                   return (
                     <span key={n} onClick={() => setN(i, n === cups ? n - 1 : n)}
                           style={{ cursor:"pointer", display:"inline-flex" }}>
-                      <IconC size={20} color={on ? a.solid : C.rule} fill={on ? a.solid : "none"} />
+                      <IconC size={20} color={on ? a.solid : C.rule} fill={on ? a.solid : "none"}/>
                     </span>
                   );
                 })}
-                <span style={{ fontSize:12, color:C.muted, marginLeft:8, minWidth:20, fontVariantNumeric:"tabular-nums" }}>
+                <span style={{ fontSize:11, color:C.muted, marginLeft:8, minWidth:18, fontVariantNumeric:"tabular-nums" }}>
                   {cups}
                 </span>
               </div>
@@ -645,33 +743,26 @@ function CounterCard({ cat, days, data, update }) {
 }
 
 function CheckCard({ cat, days, data, update }) {
-  const v = data.values;
-  const a = accentOf(cat);
+  const v = data.values, a = accentOf(cat);
   const count = v.filter(Boolean).length;
   const IconC = ICONS[cat.icon] || IconCheck;
-  const toggle = (i) => update(d => {
-    const nv = [...d.values]; nv[i] = !nv[i]; return { ...d, values: nv };
-  });
+  const toggle = (i) => update(d => { const nv = [...d.values]; nv[i] = !nv[i]; return { ...d, values: nv }; });
   return (
     <Section title={cat.name} subtitle={`${count} / 7 days`} accent={a}>
       <div style={{ padding:"16px" }}>
-        {cat.subtitle && (
-          <div style={{ fontSize:13, color:C.inkSoft, marginBottom:14, fontStyle:"italic" }}>{cat.subtitle}</div>
-        )}
+        {cat.subtitle && <div style={{ fontSize:12, color:C.inkSoft, marginBottom:14 }}>{cat.subtitle}</div>}
         <div style={{ display:"flex", justifyContent:"space-between", gap:4 }}>
           {days.map((d, i) => {
             const done = v[i];
             return (
               <button key={i} onClick={() => toggle(i)}
-                      style={{ flex:1, padding:"10px 2px 8px",
+                      style={{ flex:1, padding:"12px 2px 10px",
                                border:"1px solid "+(done ? a.solid : C.rule),
                                background: done ? a.solid : "transparent",
-                               color: done ? a.onSolid : C.ink,
-                               cursor:"pointer", borderRadius:8, transition:"all 0.2s",
+                               color: done ? a.onSolid : C.ink, cursor:"pointer",
                                display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
-                <IconC size={22} color={done ? a.onSolid : a.solid}
-                       fill={done ? a.onSolid : "none"} />
-                <span style={{ fontSize:11, fontWeight:600 }}>{d.name.slice(0,1)}</span>
+                <IconC size={20} color={done ? a.onSolid : a.solid} fill={done ? a.onSolid : "none"}/>
+                <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.05em" }}>{d.name.slice(0,1)}</span>
               </button>
             );
           })}
@@ -699,8 +790,7 @@ function dayHit(cat, dayValue) {
 }
 
 function Stats({ store, onBack, realCurrentWeek }) {
-  const allWeeks = Object.keys(store.weeks).sort(); // oldest first
-  // include the current week even if empty
+  const allWeeks = Object.keys(store.weeks).sort();
   if (!allWeeks.includes(realCurrentWeek)) allWeeks.push(realCurrentWeek);
   allWeeks.sort();
   const last8 = allWeeks.slice(-8);
@@ -708,21 +798,18 @@ function Stats({ store, onBack, realCurrentWeek }) {
   return (
     <Page>
       <div style={{ maxWidth:640, margin:"0 auto" }}>
-        <TopBar onBack={onBack} title="Your stats" />
+        <TopBar onBack={onBack} title="your stats"/>
 
-        <div style={{ background:C.card, border:"1px solid "+C.line, borderRadius:14, padding:18, marginBottom:20 }}>
-          <div style={{ fontSize:12, color:C.muted, letterSpacing:1, textTransform:"uppercase", marginBottom:8, fontWeight:600 }}>
-            This week so far
-          </div>
-          <ThisWeekSummary store={store} wk={realCurrentWeek} />
+        <div style={{ background:C.card, border:"1px solid "+C.line, padding:18, marginBottom:20 }}>
+          <div style={subheadStyle()}>this week so far</div>
+          <ThisWeekSummary store={store} wk={realCurrentWeek}/>
         </div>
 
         {store.categories.map(cat => (
-          <CategoryStats key={cat.id} cat={cat} store={store} weeks={last8}
-                         realCurrentWeek={realCurrentWeek} allWeeks={allWeeks}/>
+          <CategoryStats key={cat.id} cat={cat} store={store} weeks={last8} allWeeks={allWeeks}/>
         ))}
 
-        <Footer />
+        <Footer/>
       </div>
     </Page>
   );
@@ -731,18 +818,17 @@ function Stats({ store, onBack, realCurrentWeek }) {
 function ThisWeekSummary({ store, wk }) {
   const data = store.weeks[wk] || {};
   return (
-    <div style={{ display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:10 }}>
+    <div style={{ display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:8 }}>
       {store.categories.map(cat => {
         const a = accentOf(cat);
         const cv = (data[cat.id] && data[cat.id].values) || [];
-        const hits = cv.filter((v, i) => dayHit(cat, v)).length;
+        const hits = cv.filter(v => dayHit(cat, v)).length;
         return (
-          <div key={cat.id} style={{ border:"1px solid "+C.line, borderRadius:10, padding:"10px 12px",
+          <div key={cat.id} style={{ border:"1px solid "+C.line, padding:"10px 12px",
                                      display:"flex", alignItems:"center", gap:10 }}>
-            <span style={{ width:8, height:34, borderRadius:4, background:a.solid, flexShrink:0 }} />
+            <span style={{ width:6, height:32, background:a.solid, flexShrink:0 }}/>
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:13, fontWeight:600, color:C.ink, whiteSpace:"nowrap",
-                            overflow:"hidden", textOverflow:"ellipsis" }}>{cat.name}</div>
+              <div style={{ fontSize:12, fontWeight:700, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", letterSpacing:"0.02em" }}>{cat.name}</div>
               <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
                 <strong style={{ color:a.solid, fontSize:14 }}>{hits}</strong> / 7 days
               </div>
@@ -756,11 +842,8 @@ function ThisWeekSummary({ store, wk }) {
 
 function CategoryStats({ cat, store, weeks, allWeeks }) {
   const a = accentOf(cat);
-
-  // streak: count consecutive days hit, walking backwards from most recent day with data
-  // Combine daily series across all weeks (oldest first), then trim to today.
   const today = new Date(); today.setHours(0,0,0,0);
-  const series = []; // { iso, hit }
+  const series = [];
   for (const wk of allWeeks) {
     const data = store.weeks[wk]?.[cat.id]?.values;
     const days = buildDaysForWeek(new Date(wk + "T00:00:00"));
@@ -771,38 +854,35 @@ function CategoryStats({ cat, store, weeks, allWeeks }) {
       series.push({ iso: days[i].iso, hit });
     }
   }
-  // current streak (from end backwards)
   let currentStreak = 0;
   for (let i = series.length - 1; i >= 0; i--) {
     if (series[i].hit) currentStreak++; else break;
   }
-  // best streak ever
   let best = 0, run = 0;
   for (const s of series) { if (s.hit) { run++; best = Math.max(best, run); } else run = 0; }
-  // total
   const totalHits = series.filter(s => s.hit).length;
   const totalDays = series.length || 1;
 
   return (
-    <div style={{ background:C.card, border:"1px solid "+C.line, borderRadius:14, marginBottom:20, overflow:"hidden" }}>
-      <div style={{ height:6, background:a.solid }} />
-      <div style={{ padding:"14px 16px 12px", background:a.soft, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-        <h3 style={{ margin:0, fontSize:15, fontWeight:600, color:C.ink }}>{cat.name}</h3>
-        <span style={{ fontSize:11, color:C.inkSoft, letterSpacing:1, textTransform:"uppercase", fontWeight:600 }}>
+    <div style={{ background:C.card, border:"1px solid "+C.line, marginBottom:20, overflow:"hidden" }}>
+      <div style={{ background:a.solid, padding:"14px 16px",
+                    display:"flex", justifyContent:"space-between", alignItems:"baseline" }}>
+        <h3 style={{ margin:0, fontSize:13, fontWeight:700, color:a.onSolid,
+                     letterSpacing:"0.14em", textTransform:"uppercase" }}>{cat.name}</h3>
+        <span style={{ fontSize:10, color:a.onSolid, opacity:0.85, letterSpacing:"0.08em",
+                       textTransform:"uppercase", fontWeight:600 }}>
           {totalHits} / {totalDays} days
         </span>
       </div>
 
       <div style={{ padding:"14px 16px 6px", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
-        <Stat label="Current streak" value={currentStreak} suffix={currentStreak === 1 ? "day" : "days"} accent={a}/>
-        <Stat label="Best streak" value={best} suffix={best === 1 ? "day" : "days"} accent={a}/>
-        <Stat label="Hit rate" value={Math.round((totalHits/totalDays)*100)} suffix="%" accent={a}/>
+        <Stat label="streak" value={currentStreak} suffix={currentStreak === 1 ? "day" : "days"} accent={a}/>
+        <Stat label="best" value={best} suffix={best === 1 ? "day" : "days"} accent={a}/>
+        <Stat label="hit rate" value={Math.round((totalHits/totalDays)*100)} suffix="%" accent={a}/>
       </div>
 
-      <div style={{ padding:"6px 16px 14px" }}>
-        <div style={{ fontSize:11, color:C.muted, letterSpacing:1, textTransform:"uppercase", marginBottom:8, fontWeight:600 }}>
-          Last {weeks.length} {weeks.length === 1 ? "week" : "weeks"}
-        </div>
+      <div style={{ padding:"6px 16px 16px" }}>
+        <div style={subheadStyle({ marginTop:8, marginBottom:8 })}>last {weeks.length} {weeks.length === 1 ? "week" : "weeks"}</div>
         <Heatmap cat={cat} store={store} weeks={weeks} accent={a}/>
         <Bars cat={cat} store={store} weeks={weeks} accent={a}/>
       </div>
@@ -811,11 +891,11 @@ function CategoryStats({ cat, store, weeks, allWeeks }) {
 }
 
 function Stat({ label, value, suffix, accent }) {
-  const a = accent || ACCENTS.sage;
+  const a = accent || ACCENTS.forest;
   return (
-    <div style={{ background:C.card, border:"1px solid "+C.line, borderRadius:10, padding:"8px 10px", textAlign:"center" }}>
-      <div style={{ fontSize:10, color:C.muted, letterSpacing:1, textTransform:"uppercase", fontWeight:600 }}>{label}</div>
-      <div style={{ fontSize:22, fontWeight:700, color:a.solid, marginTop:2, fontVariantNumeric:"tabular-nums" }}>
+    <div style={{ border:"1px solid "+C.line, padding:"10px 8px", textAlign:"center" }}>
+      <div style={{ fontSize:9, color:C.muted, letterSpacing:"0.14em", textTransform:"uppercase", fontWeight:700 }}>{label}</div>
+      <div style={{ fontSize:22, fontWeight:700, color:a.solid, marginTop:4, fontVariantNumeric:"tabular-nums" }}>
         {value}<span style={{ fontSize:11, color:C.muted, marginLeft:3, fontWeight:500 }}>{suffix}</span>
       </div>
     </div>
@@ -823,14 +903,14 @@ function Stat({ label, value, suffix, accent }) {
 }
 
 function Heatmap({ cat, store, weeks, accent }) {
-  const a = accent || ACCENTS.sage;
+  const a = accent || ACCENTS.forest;
   const cell = 18, gap = 4;
   return (
     <div style={{ overflowX:"auto" }}>
       <div style={{ display:"grid", gridTemplateColumns:`60px repeat(7, ${cell}px)`, gap, alignItems:"center" }}>
-        <div />
+        <div/>
         {DAY_SHORT.map((d, i) => (
-          <div key={i} style={{ fontSize:10, color:C.muted, textAlign:"center", fontWeight:600 }}>{d}</div>
+          <div key={i} style={{ fontSize:10, color:C.muted, textAlign:"center", fontWeight:700 }}>{d}</div>
         ))}
         {weeks.map((wk) => {
           const data = store.weeks[wk]?.[cat.id]?.values;
@@ -847,10 +927,10 @@ function Heatmap({ cat, store, weeks, accent }) {
                 const hit = data ? dayHit(cat, data[i]) : false;
                 return (
                   <div key={i} style={{
-                    width:cell, height:cell, borderRadius:4,
+                    width:cell, height:cell,
                     background: future ? "transparent" : (hit ? a.solid : a.soft),
                     border: future ? "1px dashed "+C.rule : "none",
-                  }} title={`${days[i].iso}${hit?" · hit":""}`} />
+                  }} title={`${days[i].iso}${hit?" · hit":""}`}/>
                 );
               })}
             </React.Fragment>
@@ -862,11 +942,10 @@ function Heatmap({ cat, store, weeks, accent }) {
 }
 
 function Bars({ cat, store, weeks, accent }) {
-  const a = accent || ACCENTS.sage;
-  // % per week
+  const a = accent || ACCENTS.forest;
   const data = weeks.map(wk => {
     const v = store.weeks[wk]?.[cat.id]?.values;
-    if (!v) return { wk, pct: 0 };
+    if (!v) return { wk, pct: 0, label: wk.slice(5) };
     const today = new Date(); today.setHours(0,0,0,0);
     const days = buildDaysForWeek(new Date(wk + "T00:00:00"));
     let possible = 0, hits = 0;
@@ -880,24 +959,22 @@ function Bars({ cat, store, weeks, accent }) {
   });
 
   return (
-    <div style={{ marginTop:14 }}>
-      <div style={{ fontSize:11, color:C.muted, letterSpacing:1, textTransform:"uppercase", marginBottom:8, fontWeight:600 }}>
-        Weekly hit rate
-      </div>
+    <div style={{ marginTop:16 }}>
+      <div style={subheadStyle({ marginBottom:8 })}>weekly hit rate</div>
       <div style={{ display:"flex", alignItems:"flex-end", gap:6, height:80,
                     borderBottom:"1px solid "+C.line, paddingBottom:4 }}>
         {data.map((d, i) => (
-          <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4, height:"100%" }}>
+          <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", height:"100%" }}>
             <div style={{ flex:1, width:"100%", display:"flex", alignItems:"flex-end" }}>
-              <div style={{ width:"100%", height:`${d.pct}%`, background:a.solid, borderRadius:"4px 4px 0 0",
-                            minHeight: d.pct > 0 ? 2 : 0 }} title={`${d.pct}%`} />
+              <div style={{ width:"100%", height:`${d.pct}%`, background:a.solid,
+                            minHeight: d.pct > 0 ? 2 : 0 }} title={`${d.pct}%`}/>
             </div>
           </div>
         ))}
       </div>
       <div style={{ display:"flex", gap:6, marginTop:4 }}>
         {data.map((d, i) => (
-          <div key={i} style={{ flex:1, fontSize:9, color:C.muted, textAlign:"center", fontWeight:500 }}>
+          <div key={i} style={{ flex:1, fontSize:9, color:C.muted, textAlign:"center", fontWeight:600 }}>
             {d.label || d.wk.slice(5)}
           </div>
         ))}
@@ -912,9 +989,9 @@ function Settings({ store, updateCategories, onBack, onEdit }) {
   return (
     <Page>
       <div style={{ maxWidth:640, margin:"0 auto" }}>
-        <TopBar onBack={onBack} title="Edit your tracker" />
+        <TopBar onBack={onBack} title="edit your tracker"/>
 
-        <div style={{ background:C.card, border:"1px solid "+C.line, borderRadius:14, padding:"4px 0" }}>
+        <div style={{ background:C.card, border:"1px solid "+C.line }}>
           {store.categories.map((cat, idx) => {
             const a = accentOf(cat);
             return (
@@ -922,19 +999,19 @@ function Settings({ store, updateCategories, onBack, onEdit }) {
                    style={{ padding:"14px 16px",
                             borderBottom: idx === store.categories.length - 1 ? "none" : "1px solid "+C.line,
                             display:"flex", alignItems:"center", gap:12 }}>
-                <span style={{ width:10, height:30, borderRadius:4, background:a.solid, flexShrink:0 }} />
+                <span style={{ width:8, height:30, background:a.solid, flexShrink:0 }}/>
                 <div style={{ flex:1 }}>
-                  <div style={{ fontSize:15, fontWeight:600, color:C.ink }}>{cat.name}</div>
-                  <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>{labelForType(cat)}</div>
+                  <div style={{ fontSize:14, fontWeight:700, letterSpacing:"0.02em" }}>{cat.name}</div>
+                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>{labelForType(cat)}</div>
                 </div>
-                <button onClick={() => onEdit(cat.id)} style={pillBtn()}>Edit</button>
-                <button title="Delete category"
+                <button onClick={() => onEdit(cat.id)} style={pillBtn()}>edit</button>
+                <button title="delete category"
                         onClick={() => {
-                          if (!confirm(`Delete "${cat.name}"? This removes its data for this week.`)) return;
+                          if (!confirm(`delete "${cat.name}"? this removes its data for this week.`)) return;
                           updateCategories(cs => cs.filter(c => c.id !== cat.id));
                         }}
-                        style={{ ...pillBtn(), color:"#a04040", borderColor:"#e8c4bc" }}>
-                  <IconTrash size={14} color="#a04040" />
+                        style={{ ...pillBtn(), color:"#a04040", borderColor:"#d4b0a0" }}>
+                  <IconTrash size={12} color="#a04040"/>
                 </button>
               </div>
             );
@@ -945,33 +1022,32 @@ function Settings({ store, updateCategories, onBack, onEdit }) {
           {!adding ? (
             <button onClick={() => setAdding(true)}
                     style={{ ...pillBtn(), padding:"12px 16px", display:"inline-flex", alignItems:"center", gap:8 }}>
-              <IconPlus size={14} color={C.muted}/> Add a category
+              <IconPlus size={12} color={C.ink}/> add a habit
             </button>
           ) : (
             <NewCategoryForm
               existingCount={store.categories.length}
               onCancel={() => setAdding(false)}
-              onCreate={(cat) => { updateCategories(cs => [...cs, cat]); setAdding(false); onEdit(cat.id); }}
-            />
+              onCreate={(cat) => { updateCategories(cs => [...cs, cat]); setAdding(false); onEdit(cat.id); }}/>
           )}
         </div>
 
-        <div style={{ marginTop:32, fontSize:12, color:C.muted, textAlign:"center", fontStyle:"italic" }}>
-          Changes save automatically.
+        <div style={{ marginTop:32, fontSize:11, color:C.muted, textAlign:"center" }}>
+          changes save automatically.
         </div>
 
-        <Footer />
+        <Footer/>
       </div>
     </Page>
   );
 }
 
 function labelForType(c) {
-  if (c.type === "movement") return "Daily activity (one per day)";
-  if (c.type === "slots")    return `Multiple slots per day · ${c.slots.length} slots`;
-  if (c.type === "water")    return `Water · ${c.weightLbs || "?"} lb · ${c.bottleOz || "?"} oz bottle`;
-  if (c.type === "counter")  return `Counter (up to ${c.max || 3})`;
-  if (c.type === "check")    return "Daily yes/no";
+  if (c.type === "movement") return "daily activity";
+  if (c.type === "slots")    return `multi-slot · ${c.slots.length} slots`;
+  if (c.type === "water")    return `water · ${c.weightLbs || "?"}lb · ${c.bottleOz || "?"}oz bottle`;
+  if (c.type === "counter")  return `counter (up to ${c.max || 3})`;
+  if (c.type === "check")    return "daily yes/no";
   return c.type;
 }
 
@@ -987,29 +1063,28 @@ function NewCategoryForm({ onCreate, onCancel, existingCount }) {
     if (type === "check")    cat = { ...cat, subtitle: "", icon: "heart" };
     if (type === "counter")  cat = { ...cat, subtitle: "", max: 3, icon: "coffee" };
     if (type === "slots")    cat = { ...cat, subtitle: "", slots: ["Slot 1","Slot 2","Slot 3"], slotHeaders: ["", "", ""] };
-    if (type === "water")    cat = { ...cat, subtitle: "Half your weight in ounces. That's the rule.", weightLbs: 150, bottleOz: 24 };
+    if (type === "water")    cat = { ...cat, subtitle: "half your weight in ounces.", weightLbs: 150, bottleOz: 24 };
     if (type === "movement") cat = { ...cat, subtitle: "5+ days a week",
       perDay: Array.from({length:7}).map(() => ({ label:"Move", icon:"activity" })) };
     onCreate(cat);
   };
   return (
-    <div style={{ background:C.card, border:"1px solid "+C.line, padding:16, borderRadius:14 }}>
-      <Field label="Name">
-        <input value={name} autoFocus onChange={e => setName(e.target.value)}
-               placeholder="e.g. Stretching" style={inputStyle()} />
+    <div style={{ background:C.card, border:"1px solid "+C.line, padding:16 }}>
+      <Field label="name">
+        <input value={name} autoFocus onChange={e => setName(e.target.value)} placeholder="e.g. stretching"/>
       </Field>
-      <Field label="Type">
-        <select value={type} onChange={e => setType(e.target.value)} style={inputStyle()}>
-          <option value="check">Daily yes/no (e.g. Read 5 min, Phone away)</option>
-          <option value="counter">Counter (e.g. Coffee — up to N)</option>
-          <option value="slots">Multiple slots per day (e.g. Fruit/Veg)</option>
-          <option value="water">Water (weight-based)</option>
-          <option value="movement">Movement (different activity per day)</option>
+      <Field label="type">
+        <select value={type} onChange={e => setType(e.target.value)}>
+          <option value="check">daily yes/no</option>
+          <option value="counter">counter (up to N)</option>
+          <option value="slots">multiple slots per day</option>
+          <option value="water">water (weight-based)</option>
+          <option value="movement">movement (different per day)</option>
         </select>
       </Field>
       <div style={{ display:"flex", gap:8, marginTop:12 }}>
-        <button onClick={submit} style={primaryBtn()}>Add it</button>
-        <button onClick={onCancel} style={pillBtn()}>Cancel</button>
+        <button onClick={submit} style={primaryBtn()}>add it</button>
+        <button onClick={onCancel} style={pillBtn()}>cancel</button>
       </div>
     </div>
   );
@@ -1018,64 +1093,54 @@ function NewCategoryForm({ onCreate, onCancel, existingCount }) {
 /* =================== CATEGORY EDITOR =================== */
 function CategoryEditor({ store, catId, updateCategories, onBack }) {
   const cat = store.categories.find(c => c.id === catId);
-  if (!cat) return <Page><TopBar onBack={onBack} title="Not found" /></Page>;
+  if (!cat) return <Page><TopBar onBack={onBack} title="not found"/></Page>;
   const patch = (changes) => updateCategories(cs => cs.map(c => c.id === catId ? { ...c, ...changes } : c));
   const a = accentOf(cat);
 
   return (
     <Page>
       <div style={{ maxWidth:640, margin:"0 auto" }}>
-        <TopBar onBack={onBack} title={cat.name} accentColor={a.solid} />
+        <TopBar onBack={onBack} title={cat.name} accentColor={a.solid}/>
 
-        <div style={{ background:C.card, border:"1px solid "+C.line, padding:16, borderRadius:14 }}>
-          <Field label="Name">
-            <input value={cat.name} onChange={e => patch({ name: e.target.value })} style={inputStyle()} />
+        <div style={{ background:C.card, border:"1px solid "+C.line, padding:16 }}>
+          <Field label="name">
+            <input value={cat.name} onChange={e => patch({ name: e.target.value })}/>
           </Field>
-
-          <Field label="Color">
-            <ColorPicker value={cat.accent} onChange={(v) => patch({ accent: v })} />
+          <Field label="color">
+            <ColorPicker value={cat.accent} onChange={(v) => patch({ accent: v })}/>
           </Field>
-
-          <Field label="Subtitle (small text shown under the title)">
-            <input value={cat.subtitle || ""} onChange={e => patch({ subtitle: e.target.value })}
-                   placeholder="(optional)" style={inputStyle()} />
+          <Field label="subtitle (small text shown under the title)">
+            <input value={cat.subtitle || ""} onChange={e => patch({ subtitle: e.target.value })} placeholder="(optional)"/>
           </Field>
 
           {cat.type === "counter" && (
             <>
-              <Field label="Max per day">
+              <Field label="max per day">
                 <input type="number" min="1" max="20" value={cat.max}
-                       onChange={e => patch({ max: clampInt(e.target.value, 1, 20, 3) })}
-                       style={inputStyle()} />
+                       onChange={e => patch({ max: clampInt(e.target.value, 1, 20, 3) })}/>
               </Field>
-              <Field label="Icon">
-                <IconPicker value={cat.icon} onChange={v => patch({ icon: v })} accent={a}/>
-              </Field>
+              <Field label="icon"><IconPicker value={cat.icon} onChange={v => patch({ icon: v })} accent={a}/></Field>
             </>
           )}
 
           {cat.type === "check" && (
-            <Field label="Icon">
-              <IconPicker value={cat.icon} onChange={v => patch({ icon: v })} accent={a}/>
-            </Field>
+            <Field label="icon"><IconPicker value={cat.icon} onChange={v => patch({ icon: v })} accent={a}/></Field>
           )}
 
           {cat.type === "water" && (
             <>
-              <Field label="Your weight (lbs)">
+              <Field label="your weight (lbs)">
                 <input type="number" min="40" max="500" value={cat.weightLbs}
-                       onChange={e => patch({ weightLbs: clampInt(e.target.value, 40, 500, 150) })}
-                       style={inputStyle()} />
+                       onChange={e => patch({ weightLbs: clampInt(e.target.value, 40, 500, 150) })}/>
                 <div style={hintStyle()}>
-                  Daily goal = weight ÷ 2 oz. Right now: <strong>{Math.round((cat.weightLbs||0)/2)} oz/day</strong>.
+                  daily goal = weight ÷ 2 oz. right now: <strong>{Math.round((cat.weightLbs||0)/2)} oz/day</strong>.
                 </div>
               </Field>
-              <Field label="Water bottle size (oz)">
+              <Field label="water bottle size (oz)">
                 <input type="number" min="4" max="128" value={cat.bottleOz}
-                       onChange={e => patch({ bottleOz: clampInt(e.target.value, 4, 128, 24) })}
-                       style={inputStyle()} />
+                       onChange={e => patch({ bottleOz: clampInt(e.target.value, 4, 128, 24) })}/>
                 <div style={hintStyle()}>
-                  Bottles to fill per day:{" "}
+                  bottles to fill per day:{" "}
                   <strong>{Math.max(1, Math.floor(((cat.weightLbs||0)/2) / Math.max(1, cat.bottleOz||1)))}</strong>
                 </div>
               </Field>
@@ -1083,14 +1148,14 @@ function CategoryEditor({ store, catId, updateCategories, onBack }) {
           )}
 
           {cat.type === "slots" && (
-            <Field label="Slots (header above + button label)">
+            <Field label="slots (header above + button label)">
               <SlotsEditor slots={cat.slots} headers={cat.slotHeaders || cat.slots.map(()=>"")}
-                           onChange={(slots, headers) => patch({ slots, slotHeaders: headers })} />
+                           onChange={(slots, headers) => patch({ slots, slotHeaders: headers })}/>
             </Field>
           )}
 
           {cat.type === "movement" && (
-            <Field label="Activity for each day of the week">
+            <Field label="activity for each day of the week">
               <PerDayEditor perDay={cat.perDay} onChange={(perDay) => patch({ perDay })} accent={a}/>
             </Field>
           )}
@@ -1102,15 +1167,15 @@ function CategoryEditor({ store, catId, updateCategories, onBack }) {
 
 function ColorPicker({ value, onChange }) {
   return (
-    <div style={{ display:"flex", gap:8 }}>
-      {ACCENT_KEYS.concat("ink").map(k => {
+    <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+      {ACCENT_KEYS.map(k => {
         const on = value === k;
         const swatch = ACCENTS[k].solid;
         return (
           <button key={k} onClick={() => onChange(k)} title={k}
-                  style={{ width:36, height:36, padding:0, borderRadius:"50%",
-                           border: on ? "3px solid "+C.ink : "1px solid "+C.rule,
-                           background: swatch, cursor:"pointer" }} />
+                  style={{ width:32, height:32, padding:0, borderRadius:"50%",
+                           border: on ? "2px solid "+C.ink : "1px solid "+C.rule,
+                           background: swatch, cursor:"pointer" }}/>
         );
       })}
     </div>
@@ -1124,24 +1189,23 @@ function SlotsEditor({ slots, headers, onChange }) {
   const remove = (i) => onChange(slots.filter((_, idx) => idx !== i), headers.filter((_, idx) => idx !== i));
   return (
     <div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 36px", gap:6, marginBottom:6 }}>
-        <div style={{ fontSize:10, color:C.muted, letterSpacing:1, textTransform:"uppercase", fontWeight:600 }}>Header (above)</div>
-        <div style={{ fontSize:10, color:C.muted, letterSpacing:1, textTransform:"uppercase", fontWeight:600 }}>Button label</div>
-        <div />
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 36px", gap:8, marginBottom:6 }}>
+        <div style={{ fontSize:9, color:C.muted, letterSpacing:"0.12em", textTransform:"uppercase", fontWeight:700 }}>header</div>
+        <div style={{ fontSize:9, color:C.muted, letterSpacing:"0.12em", textTransform:"uppercase", fontWeight:700 }}>button label</div>
+        <div/>
       </div>
       {slots.map((s, i) => (
-        <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 36px", gap:6, marginBottom:6 }}>
-          <input value={headers[i] || ""} onChange={e => setHeader(i, e.target.value)}
-                 placeholder="(optional)" style={inputStyle()} />
-          <input value={s} onChange={e => setSlot(i, e.target.value)} style={inputStyle()} />
+        <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 36px", gap:8, marginBottom:6 }}>
+          <input value={headers[i] || ""} onChange={e => setHeader(i, e.target.value)} placeholder="(optional)"/>
+          <input value={s} onChange={e => setSlot(i, e.target.value)}/>
           <button onClick={() => remove(i)} disabled={slots.length <= 1}
                   style={{ ...pillBtn(), padding:"6px", opacity: slots.length <= 1 ? 0.4 : 1 }}>
-            <IconTrash size={14} color={C.muted}/>
+            <IconTrash size={12} color={C.muted}/>
           </button>
         </div>
       ))}
       <button onClick={add} style={{ ...pillBtn(), marginTop:4, display:"inline-flex", alignItems:"center", gap:6 }}>
-        <IconPlus size={14} color={C.muted}/> Add slot
+        <IconPlus size={12} color={C.ink}/> add slot
       </button>
     </div>
   );
@@ -1154,10 +1218,10 @@ function PerDayEditor({ perDay, onChange, accent }) {
       {DAY_NAMES.map((name, i) => {
         const d = perDay[i] || { label:"", icon:"activity" };
         return (
-          <div key={i} style={{ borderBottom:"1px solid "+C.line, padding:"10px 0" }}>
-            <div style={{ fontSize:12, fontWeight:600, color:C.ink, marginBottom:6 }}>{name}</div>
-            <input value={d.label} placeholder="Activity (e.g. Hike)"
-                   onChange={e => set(i, "label", e.target.value)} style={{ ...inputStyle(), marginBottom:6 }} />
+          <div key={i} style={{ borderBottom:"1px solid "+C.line, padding:"12px 0" }}>
+            <div style={{ fontSize:10, fontWeight:700, color:C.muted, letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:6 }}>{name}</div>
+            <input value={d.label} placeholder="activity (e.g. Hike)"
+                   onChange={e => set(i, "label", e.target.value)} style={{ marginBottom:8 }}/>
             <IconPicker value={d.icon} onChange={(v) => set(i, "icon", v)} accent={accent}/>
           </div>
         );
@@ -1167,7 +1231,7 @@ function PerDayEditor({ perDay, onChange, accent }) {
 }
 
 function IconPicker({ value, onChange, accent }) {
-  const a = accent || ACCENTS.sage;
+  const a = accent || ACCENTS.forest;
   return (
     <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
       {ICON_CHOICES.map(k => {
@@ -1175,12 +1239,12 @@ function IconPicker({ value, onChange, accent }) {
         const active = value === k;
         return (
           <button key={k} onClick={() => onChange(k)}
-                  style={{ width:36, height:36, padding:0,
+                  style={{ width:34, height:34, padding:0,
                            border:"1px solid "+(active ? a.solid : C.rule),
                            background: active ? a.solid : "transparent",
-                           borderRadius:8, cursor:"pointer", display:"inline-flex",
+                           cursor:"pointer", display:"inline-flex",
                            alignItems:"center", justifyContent:"center" }}>
-            <I size={18} color={active ? a.onSolid : C.muted} />
+            <I size={16} color={active ? a.onSolid : C.ink}/>
           </button>
         );
       })}
@@ -1190,56 +1254,44 @@ function IconPicker({ value, onChange, accent }) {
 
 /* =================== ABOUT =================== */
 function About({ onBack }) {
-  const para = { fontSize:15, lineHeight:1.7, color:C.ink, margin:"0 0 14px" };
-  const accent = { fontSize:32, textAlign:"center", margin:"18px 0", lineHeight:1 };
   return (
     <Page>
       <div style={{ maxWidth:560, margin:"0 auto" }}>
-        <TopBar onBack={onBack} title="why piker?" />
+        <TopBar onBack={onBack} title="why piker?"/>
 
-        <div style={{ background:C.card, border:"1px solid "+C.line, borderRadius:14, padding:"24px 22px" }}>
-          <h2 className="hand" style={{ fontSize:42, fontWeight:700, color:C.ink, margin:"0 0 4px", lineHeight:1, textAlign:"center" }}>
-            don't be a piker!
-          </h2>
-          <div style={{ width:40, height:1, background:C.rule, margin:"14px auto 24px" }} />
+        <div style={{ background:C.card, border:"1px solid "+C.line, padding:"28px 24px" }}>
+          <h2 style={wordmarkStyle(38)}>DON'T BE A PIKER</h2>
+          <div style={{ width:40, height:2, background:C.ink, margin:"18px auto 24px" }}/>
 
-          <p style={para}>
-            Growing up, my dad had this saying. Anytime my sister and I were dragging behind on a hike, or about to give up on something, or just kind of half-trying… he'd say <strong>"DON'T BE A PIKER!"</strong>
+          <p style={paraStyle()}>
+            Growing up, my dad had this saying. Anytime my sister and I were dragging behind on a hike, or about to give up on something, or just kind of half-trying… he'd say <strong>"come on, don't be a piker!"</strong>
           </p>
-          <p style={para}>
+          <p style={paraStyle()}>
             A piker is someone who quits, backs down, or doesn't give it their full effort. So basically the opposite of who he wanted us to be.
           </p>
-
-          <div style={accent}>✨</div>
-
-          <p style={para}>
-            I've been hearing that phrase my whole life and honestly it still works on me. I'll be on a run about to walk and I'll hear it in my head. I'll be tempted to skip something I told myself I'd do and there it is again. <strong>DON'T BE A PIKER.</strong>
+          <p style={paraStyle()}>
+            I've been hearing that phrase my whole life and it still works on me. I'll be on a run about to walk and I'll hear it in my head. I'll be tempted to skip something I told myself I'd do and there it is again. <strong>DON'T BE A PIKER.</strong>
           </p>
-          <p style={para}>
-            So I made an app <span style={{ fontSize:18 }}>📱</span>
-          </p>
-          <p style={para}>
+          <p style={paraStyle()}>So I made an app.</p>
+          <p style={paraStyle()}>
             I built Piker because I wanted a really simple way to track the little things I'm trying to do each week. Not life goals. Not a five-year plan. Just… did I drink enough water this week? Did I move my body? Did I do the things I said I would do?
           </p>
-          <p style={{ ...para, fontStyle:"italic", color:C.inkSoft }}>
+          <p style={{ ...paraStyle(), fontStyle:"italic", color:C.inkSoft }}>
             That's it. That's the whole app!
           </p>
-
-          <div style={accent}>💗</div>
-
-          <p style={para}>
+          <p style={paraStyle()}>
             So this week, what are you doing? What's one tiny thing you want to actually follow through on?
           </p>
-          <p style={{ ...para, marginBottom:0 }}>
-            Whatever it is, log it in here. Check it off. And <strong>don't be a piker!</strong>
+          <p style={{ ...paraStyle(), marginBottom:0 }}>
+            Whatever it is, track it here. Check it off. And <strong>don't be a piker!</strong>
           </p>
         </div>
 
         <div style={{ textAlign:"center", marginTop:24 }}>
-          <button onClick={onBack} style={primaryBtn()}>Back to my week</button>
+          <button onClick={onBack} style={primaryBtn()}>back to my week</button>
         </div>
 
-        <Footer />
+        <Footer/>
       </div>
     </Page>
   );
@@ -1248,62 +1300,70 @@ function About({ onBack }) {
 /* =================== SHARED =================== */
 function Page({ children }) {
   return (
-    <div style={{
-      minHeight:"100vh",
-      background:`linear-gradient(180deg, ${C.bgTop} 0%, ${C.bgBot} 100%)`,
-      color:C.ink, padding:"32px 20px",
-    }}>{children}</div>
+    <div style={{ minHeight:"100vh", background:C.bg, color:C.ink, padding:"32px 20px" }}>{children}</div>
   );
 }
 
 function TopBar({ onBack, title, accentColor }) {
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
+    <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:24 }}>
       <button onClick={onBack} style={{ ...pillBtn(), display:"inline-flex", alignItems:"center", gap:6 }}>
-        <IconArrowLeft size={14} color={C.muted}/> Back
+        <IconArrowLeft size={12} color={C.ink}/> back
       </button>
-      {accentColor && <span style={{ width:6, height:28, borderRadius:3, background:accentColor }} />}
-      <h1 style={{ margin:0, fontSize:20, fontWeight:600, color:C.ink }}>{title}</h1>
+      {accentColor && <span style={{ width:6, height:24, background:accentColor }}/>}
+      <h1 style={{ margin:0, fontSize:18, fontWeight:700, letterSpacing:"0.02em" }}>{title}</h1>
     </div>
   );
 }
 
 function Field({ label, children }) {
   return (
-    <div style={{ marginBottom:14 }}>
-      <div style={{ fontSize:11, color:C.muted, letterSpacing:1, textTransform:"uppercase", marginBottom:6, fontWeight:600 }}>{label}</div>
+    <div style={{ marginBottom:16 }}>
+      <div style={subheadStyle({ marginBottom:4 })}>{label}</div>
       {children}
     </div>
   );
 }
 
-function inputStyle() {
-  return { width:"100%", padding:"10px 12px", border:"1px solid "+C.rule,
-           background:"#fffdf7", borderRadius:8, fontSize:14, color:C.ink, boxSizing:"border-box",
-           fontFamily:"inherit" };
+function subheadStyle(extra = {}) {
+  return { fontSize:10, color:C.muted, letterSpacing:"0.14em", textTransform:"uppercase", fontWeight:700, ...extra };
 }
+
 function pillBtn() {
-  return { padding:"8px 12px", border:"1px solid "+C.rule, background:C.card,
-           borderRadius:999, color:C.muted, fontSize:11, letterSpacing:1, textTransform:"uppercase",
-           cursor:"pointer", fontWeight:600 };
+  return { padding:"7px 12px", border:"1px solid "+C.rule, background:"transparent",
+           color:C.ink, fontSize:11, letterSpacing:"0.08em", textTransform:"uppercase",
+           cursor:"pointer", fontWeight:600, borderRadius:0 };
 }
 function iconBtn() {
-  return { padding:"8px", border:"1px solid "+C.rule, background:C.card,
-           borderRadius:999, color:C.muted, cursor:"pointer", display:"inline-flex",
-           alignItems:"center", justifyContent:"center", width:32, height:32 };
+  return { padding:"8px", border:"1px solid "+C.rule, background:"transparent",
+           cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center",
+           width:34, height:34, borderRadius:0 };
 }
 function primaryBtn() {
-  return { padding:"10px 16px", border:"none", background:C.sage, color:"#fffdf7",
-           borderRadius:999, fontSize:12, letterSpacing:1, textTransform:"uppercase", cursor:"pointer", fontWeight:600 };
+  return { padding:"12px 22px", border:"none", background:C.ink, color:"#fafaf5",
+           fontSize:12, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer", fontWeight:700,
+           borderRadius:0 };
 }
-function hintStyle() { return { fontSize:12, color:C.muted, marginTop:6, fontStyle:"italic" }; }
+function secondaryBtn() {
+  return { padding:"12px 18px", border:"1px solid "+C.rule, background:"transparent",
+           color:C.ink, fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase",
+           cursor:"pointer", fontWeight:600, borderRadius:0 };
+}
+function textBtn() {
+  return { background:"transparent", border:"none", color:C.muted, fontSize:11,
+           letterSpacing:"0.08em", textTransform:"uppercase", cursor:"pointer", fontWeight:600, padding:0 };
+}
+function hintStyle() { return { fontSize:11, color:C.muted, marginTop:6, fontStyle:"italic" }; }
+function paraStyle() { return { fontSize:14, lineHeight:1.7, color:C.ink, margin:"0 0 16px" }; }
+function cardStyle() { return { background:C.card, border:"1px solid "+C.line, padding:"24px 22px" }; }
+
 function clampInt(v, min, max, fb) {
   const n = parseInt(v, 10);
   if (isNaN(n)) return fb;
   return Math.max(min, Math.min(max, n));
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
 </html>

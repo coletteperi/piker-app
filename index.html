@@ -288,18 +288,22 @@ function App() {
   if (view === "stats") {
     return <Stats store={store} onBack={() => setView("home")} realCurrentWeek={realCurrentWeek}/>;
   }
+  if (view === "about") {
+    return <About onBack={() => setView("home")}/>;
+  }
   return <Home store={store} days={days} data={data}
                viewingWeek={viewingWeek} realCurrentWeek={realCurrentWeek}
                goToWeek={goToWeek}
                updateData={updateData}
                onSettings={() => setView("settings")}
                onStats={() => setView("stats")}
+               onAbout={() => setView("about")}
                onReset={resetWeek} />;
 }
 
 /* =================== HOME =================== */
 function Home({ store, days, data, viewingWeek, realCurrentWeek, goToWeek,
-                updateData, onSettings, onStats, onReset }) {
+                updateData, onSettings, onStats, onAbout, onReset }) {
   const cats = store.categories;
   const weekRangeLabel = `${days[0].date} — ${days[6].date}`;
   const isCurrent = viewingWeek === realCurrentWeek;
@@ -326,7 +330,7 @@ function Home({ store, days, data, viewingWeek, realCurrentWeek, goToWeek,
             Piker
           </h1>
           <div style={{ fontSize:13, color:C.muted, marginTop:6, fontStyle:"italic" }}>
-            your week of little wins
+            track your week. don't be a piker!
           </div>
           <div style={{ display:"flex", justifyContent:"center", gap:6, marginTop:12 }}>
             <Dot color={C.yellow} /><Dot color={C.sage} /><Dot color={C.sky} /><Dot color={C.orange} /><Dot color={C.coral} />
@@ -369,6 +373,15 @@ function Home({ store, days, data, viewingWeek, realCurrentWeek, goToWeek,
 
         <div style={{ textAlign:"center", marginTop:18, fontSize:11, color:C.muted, fontStyle:"italic" }}>
           Saves automatically. No signup, no nothing.
+        </div>
+
+        <div style={{ textAlign:"center", marginTop:14 }}>
+          <button onClick={onAbout} style={{
+            background:"transparent", border:"none", color:C.sage,
+            fontSize:12, cursor:"pointer", fontStyle:"italic", textDecoration:"underline",
+          }}>
+            why piker?
+          </button>
         </div>
 
         <Footer />
@@ -532,7 +545,7 @@ function WaterCard({ cat, days, data, update }) {
   const a = accentOf(cat);
   const goalOz = Math.max(1, Math.round((cat.weightLbs || 0) / 2));
   const bottleOz = Math.max(1, cat.bottleOz || 1);
-  const bottlesGoal = Math.max(1, Math.ceil(goalOz / bottleOz));
+  const bottlesGoal = Math.max(1, Math.floor(goalOz / bottleOz));
   const v = data.values;
   const hitDays = v.filter(b => b >= bottlesGoal).length;
   const setN = (i, n) => update(d => {
@@ -678,7 +691,7 @@ function dayHit(cat, dayValue) {
   if (cat.type === "water") {
     const goalOz = Math.max(1, Math.round((cat.weightLbs || 0) / 2));
     const bottleOz = Math.max(1, cat.bottleOz || 1);
-    const bottlesGoal = Math.max(1, Math.ceil(goalOz / bottleOz));
+    const bottlesGoal = Math.max(1, Math.floor(goalOz / bottleOz));
     return (dayValue || 0) >= bottlesGoal;
   }
   if (cat.type === "counter") return (dayValue || 0) > 0;
@@ -1063,7 +1076,7 @@ function CategoryEditor({ store, catId, updateCategories, onBack }) {
                        style={inputStyle()} />
                 <div style={hintStyle()}>
                   Bottles to fill per day:{" "}
-                  <strong>{Math.max(1, Math.ceil(((cat.weightLbs||0)/2) / Math.max(1, cat.bottleOz||1)))}</strong>
+                  <strong>{Math.max(1, Math.floor(((cat.weightLbs||0)/2) / Math.max(1, cat.bottleOz||1)))}</strong>
                 </div>
               </Field>
             </>
@@ -1172,6 +1185,63 @@ function IconPicker({ value, onChange, accent }) {
         );
       })}
     </div>
+  );
+}
+
+/* =================== ABOUT =================== */
+function About({ onBack }) {
+  const para = { fontSize:15, lineHeight:1.7, color:C.ink, margin:"0 0 14px" };
+  const accent = { fontSize:32, textAlign:"center", margin:"18px 0", lineHeight:1 };
+  return (
+    <Page>
+      <div style={{ maxWidth:560, margin:"0 auto" }}>
+        <TopBar onBack={onBack} title="why piker?" />
+
+        <div style={{ background:C.card, border:"1px solid "+C.line, borderRadius:14, padding:"24px 22px" }}>
+          <h2 className="hand" style={{ fontSize:42, fontWeight:700, color:C.ink, margin:"0 0 4px", lineHeight:1, textAlign:"center" }}>
+            don't be a piker!
+          </h2>
+          <div style={{ width:40, height:1, background:C.rule, margin:"14px auto 24px" }} />
+
+          <p style={para}>
+            Growing up, my dad had this saying. Anytime my sister and I were dragging behind on a hike, or about to give up on something, or just kind of half-trying… he'd say <strong>"DON'T BE A PIKER!"</strong>
+          </p>
+          <p style={para}>
+            A piker is someone who quits, backs down, or doesn't give it their full effort. So basically the opposite of who he wanted us to be.
+          </p>
+
+          <div style={accent}>✨</div>
+
+          <p style={para}>
+            I've been hearing that phrase my whole life and honestly it still works on me. I'll be on a run about to walk and I'll hear it in my head. I'll be tempted to skip something I told myself I'd do and there it is again. <strong>DON'T BE A PIKER.</strong>
+          </p>
+          <p style={para}>
+            So I made an app <span style={{ fontSize:18 }}>📱</span>
+          </p>
+          <p style={para}>
+            I built Piker because I wanted a really simple way to track the little things I'm trying to do each week. Not life goals. Not a five-year plan. Just… did I drink enough water this week? Did I move my body? Did I do the things I said I would do?
+          </p>
+          <p style={{ ...para, fontStyle:"italic", color:C.inkSoft }}>
+            That's it. That's the whole app!
+          </p>
+
+          <div style={accent}>💗</div>
+
+          <p style={para}>
+            So this week, what are you doing? What's one tiny thing you want to actually follow through on?
+          </p>
+          <p style={{ ...para, marginBottom:0 }}>
+            Whatever it is, log it in here. Check it off. And <strong>don't be a piker!</strong>
+          </p>
+        </div>
+
+        <div style={{ textAlign:"center", marginTop:24 }}>
+          <button onClick={onBack} style={primaryBtn()}>Back to my week</button>
+        </div>
+
+        <Footer />
+      </div>
+    </Page>
   );
 }
 

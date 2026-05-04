@@ -7,12 +7,12 @@
 <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='0' y='0' width='50' height='50' fill='%23c8d0d3'/><rect x='50' y='0' width='50' height='50' fill='%238b5e3c'/><rect x='0' y='50' width='50' height='50' fill='%23d8b033'/><rect x='50' y='50' width='50' height='50' fill='%238c8e3e'/></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   html, body, #root { margin:0; padding:0; min-height:100%; background:#f6f3ec; }
   body {
     -webkit-font-smoothing: antialiased;
-    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     color: #1a1a1a;
     font-size: 14px;
     line-height: 1.5;
@@ -309,7 +309,7 @@ function Onboarding({ onComplete }) {
       <Page>
         <div style={{ maxWidth:480, margin:"60px auto", padding:"0 8px" }}>
           <ColorBlocks/>
-          <h1 style={wordmarkStyle(78)}>PIKER</h1>
+          <h1 style={wordmarkStyle(39)}>PIKER</h1>
           <p style={{ textAlign:"center", color:C.muted, fontSize:13, marginTop:10, letterSpacing:"0.02em" }}>
             track your week. don't be a piker!
           </p>
@@ -321,9 +321,9 @@ function Onboarding({ onComplete }) {
               piker is a really simple way to track the little things you're trying to do each week.
             </p>
             <p style={paraStyle()}>
-              not life goals. not a five-year plan. just… <strong>did i drink enough water this week? did i move my body? did i do the things i said i would do?</strong>
+              did i drink enough water this week? did i move my body? did i do the things i said i would do?
             </p>
-            <p style={{ ...paraStyle(), marginBottom:0, fontStyle:"italic", color:C.inkSoft }}>
+            <p style={{ ...paraStyle(), marginBottom:0 }}>
               that's it. that's the whole app!
             </p>
           </div>
@@ -569,7 +569,7 @@ function Home({ store, days, data, viewingWeek, realCurrentWeek, goToWeek,
           </div>
 
           <ColorBlocks/>
-          <h1 style={wordmarkStyle(72)}>PIKER</h1>
+          <h1 style={wordmarkStyle(36)}>PIKER</h1>
           <p style={{ textAlign:"center", color:C.muted, fontSize:13, marginTop:10, marginBottom:0, letterSpacing:"0.02em" }}>
             track your week. don't be a piker!
           </p>

@@ -7,7 +7,7 @@
 <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>✨</text></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   html, body, #root { margin:0; padding:0; min-height:100%; }
   body {
@@ -29,8 +29,9 @@
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useMemo } = React;
 
-const STORAGE_KEY = "piker_app_v2";
+const STORAGE_KEY = "piker_app_v3";
 const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const DAY_SHORT = ["S","M","T","W","T","F","S"];
 
 /* ---------- Inline SVG icons ---------- */
 const Icon = ({ d, size = 18, color = "currentColor", fill = "none", stroke = 2, style }) => (
@@ -52,6 +53,9 @@ const IconSettings  = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="3"/><p
 const IconPlus      = (p) => <Icon {...p} d={<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>} />;
 const IconTrash     = (p) => <Icon {...p} d={<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></>} />;
 const IconArrowLeft = (p) => <Icon {...p} d={<><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>} />;
+const IconChevL     = (p) => <Icon {...p} d={<polyline points="15 18 9 12 15 6"/>} />;
+const IconChevR     = (p) => <Icon {...p} d={<polyline points="9 18 15 12 9 6"/>} />;
+const IconChart     = (p) => <Icon {...p} d={<><line x1="3" y1="3" x2="3" y2="21"/><line x1="3" y1="21" x2="21" y2="21"/><polyline points="7 14 11 10 14 13 20 6"/></>} />;
 const IconSun       = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M5 5l1.5 1.5"/><path d="M17.5 17.5L19 19"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M5 19l1.5-1.5"/><path d="M17.5 6.5L19 5"/></>} />;
 const IconLeaf      = (p) => <Icon {...p} d={<><path d="M11 20A7 7 0 0 1 4 13c0-5 4-9 9-9a9 9 0 0 1 8 8c0 4-3 8-7 8z"/><path d="M2 22s2-4 9-7"/></>} />;
 const IconHeart     = (p) => <Icon {...p} d={<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>} />;
@@ -71,6 +75,11 @@ function startOfWeek(date = new Date()) {
 }
 function fmtMonthDay(d) { return d.toLocaleDateString("en-US", { month:"short", day:"numeric" }); }
 function weekKey(date) { return startOfWeek(date).toISOString().slice(0,10); }
+function shiftWeek(wkKey, byDays) {
+  const d = new Date(wkKey + "T00:00:00");
+  d.setDate(d.getDate() + byDays);
+  return weekKey(d);
+}
 function buildDaysForWeek(weekStart) {
   return DAY_NAMES.map((name, i) => {
     const d = new Date(weekStart);
@@ -79,7 +88,7 @@ function buildDaysForWeek(weekStart) {
   });
 }
 
-/* ---------- Color tokens (multi-color palette) ---------- */
+/* ---------- Color tokens ---------- */
 const C = {
   bgTop:   "#fffaf0",
   bgBot:   "#fff3df",
@@ -99,7 +108,6 @@ const C = {
   orangeSoft: "#fadcc7",
   coral:   "#e88a82",
   coralSoft:"#fbdcd8",
-  brown:   "#6b4423",
 };
 const ACCENTS = {
   sage:   { solid: C.sage,   soft: C.sageSoft,   onSolid: "#fffdf7" },
@@ -120,32 +128,27 @@ function defaultCategories() {
       subtitle: "5+ days a week, however feels good",
       accent: "sage",
       perDay: [
-        { label: "Beach walk",       duration: "45–60 min easy",     icon: "waves" },
-        { label: "Pilates class",    duration: "Full class",         icon: "activity" },
-        { label: "Hike",             duration: "60–90 min",          icon: "mountain" },
-        { label: "Rest or easy walk",duration: "20–30 min optional", icon: "wind" },
-        { label: "Pilates or run",   duration: "Class or 20–25 min", icon: "activity" },
-        { label: "Beach walk",       duration: "45 min",             icon: "waves" },
-        { label: "Long hike or run", duration: "90+ min",            icon: "mountain" },
+        { label: "Beach walk",        icon: "waves" },
+        { label: "Pilates class",     icon: "activity" },
+        { label: "Hike",              icon: "mountain" },
+        { label: "Rest or easy walk", icon: "wind" },
+        { label: "Pilates or run",    icon: "activity" },
+        { label: "Beach walk",        icon: "waves" },
+        { label: "Long hike or run",  icon: "mountain" },
       ],
     },
     {
       id: "fruitveg", name: "Fruit & Veg", type: "slots",
       subtitle: "Fruit at breakfast, veg at lunch, veg at dinner.",
       accent: "orange",
-      slots: ["Fruit B", "Veg L", "Veg D"],
+      slotHeaders: ["breakfast", "lunch", "dinner"],
+      slots: ["fruit", "veg", "veg"],
     },
     {
       id: "water", name: "Water", type: "water",
       subtitle: "Half your weight in ounces. That's the rule.",
       accent: "sky",
       weightLbs: 150, bottleOz: 24,
-    },
-    {
-      id: "coffee", name: "Coffee", type: "counter",
-      subtitle: "Up to 3 cups, finish by early afternoon.",
-      accent: "coral",
-      max: 3, icon: "coffee",
     },
     {
       id: "reading", name: "Read 5 Min", type: "check",
@@ -173,12 +176,24 @@ function defaultDataFor(cat) {
   }
 }
 
+function ensureWeek(store, wk) {
+  if (!store.weeks[wk]) {
+    store.weeks[wk] = {};
+    for (const c of store.categories) store.weeks[wk][c.id] = defaultDataFor(c);
+  } else {
+    for (const c of store.categories) {
+      if (!store.weeks[wk][c.id]) store.weeks[wk][c.id] = defaultDataFor(c);
+    }
+  }
+  return store;
+}
+
 function defaultStore() {
   const cats = defaultCategories();
   const wk = weekKey(new Date());
   const data = {};
   for (const c of cats) data[c.id] = defaultDataFor(c);
-  return { categories: cats, weeks: { [wk]: data }, currentWeek: wk };
+  return { categories: cats, weeks: { [wk]: data } };
 }
 
 function loadStore() {
@@ -187,17 +202,10 @@ function loadStore() {
     if (!raw) return defaultStore();
     const s = JSON.parse(raw);
     if (!s.categories || !s.weeks) return defaultStore();
-    const wk = weekKey(new Date());
-    if (!s.weeks[wk]) {
-      s.weeks[wk] = {};
-      for (const c of s.categories) s.weeks[wk][c.id] = defaultDataFor(c);
-    }
-    s.currentWeek = wk;
     for (const c of s.categories) {
-      if (!s.weeks[wk][c.id]) s.weeks[wk][c.id] = defaultDataFor(c);
       if (!c.accent) c.accent = ACCENT_KEYS[Math.floor(Math.random()*ACCENT_KEYS.length)];
     }
-    return s;
+    return ensureWeek(s, weekKey(new Date()));
   } catch (e) {
     return defaultStore();
   }
@@ -210,8 +218,10 @@ function saveStore(store) {
 /* =================== APP =================== */
 function App() {
   const [store, setStore] = useState(null);
-  const [view, setView]   = useState("home");
+  const [view, setView]   = useState("home"); // home | settings | category-edit | stats
   const [editingId, setEditingId] = useState(null);
+  const [viewingWeek, setViewingWeek] = useState(weekKey(new Date()));
+  const realCurrentWeek = weekKey(new Date());
 
   useEffect(() => { setStore(loadStore()); }, []);
   useEffect(() => { if (store) saveStore(store); }, [store]);
@@ -223,36 +233,45 @@ function App() {
     </div>
   );
 
-  const wk = store.currentWeek;
-  const data = store.weeks[wk];
-  const days = buildDaysForWeek(new Date(wk + "T00:00:00"));
+  const data = store.weeks[viewingWeek] || {};
+  const days = buildDaysForWeek(new Date(viewingWeek + "T00:00:00"));
+
+  const goToWeek = (wk) => {
+    setStore(s => {
+      const next = { ...s, weeks: { ...s.weeks } };
+      ensureWeek(next, wk);
+      return next;
+    });
+    setViewingWeek(wk);
+  };
 
   const updateData = (catId, fn) => {
     setStore(s => {
       const next = { ...s, weeks: { ...s.weeks } };
-      next.weeks[wk] = { ...s.weeks[wk] };
-      next.weeks[wk][catId] = fn(s.weeks[wk][catId]);
+      ensureWeek(next, viewingWeek);
+      next.weeks[viewingWeek] = { ...next.weeks[viewingWeek] };
+      next.weeks[viewingWeek][catId] = fn(next.weeks[viewingWeek][catId]);
       return next;
     });
   };
   const updateCategories = (fn) => {
     setStore(s => {
       const cats = fn(s.categories);
-      const wkData = { ...s.weeks[wk] };
+      const wkData = { ...s.weeks[viewingWeek] };
       for (const c of cats) if (!wkData[c.id]) wkData[c.id] = defaultDataFor(c);
       for (const id of Object.keys(wkData)) {
         if (!cats.find(c => c.id === id)) delete wkData[id];
       }
-      return { ...s, categories: cats, weeks: { ...s.weeks, [wk]: wkData } };
+      return { ...s, categories: cats, weeks: { ...s.weeks, [viewingWeek]: wkData } };
     });
   };
 
   const resetWeek = () => {
-    if (!confirm("Wipe the whole week clean and start fresh?")) return;
+    if (!confirm("Wipe this week clean and start fresh?")) return;
     setStore(s => {
       const fresh = {};
       for (const c of s.categories) fresh[c.id] = defaultDataFor(c);
-      return { ...s, weeks: { ...s.weeks, [wk]: fresh } };
+      return { ...s, weeks: { ...s.weeks, [viewingWeek]: fresh } };
     });
   };
 
@@ -266,39 +285,43 @@ function App() {
                            updateCategories={updateCategories}
                            onBack={() => setView("settings")} />;
   }
+  if (view === "stats") {
+    return <Stats store={store} onBack={() => setView("home")} realCurrentWeek={realCurrentWeek}/>;
+  }
   return <Home store={store} days={days} data={data}
+               viewingWeek={viewingWeek} realCurrentWeek={realCurrentWeek}
+               goToWeek={goToWeek}
                updateData={updateData}
                onSettings={() => setView("settings")}
+               onStats={() => setView("stats")}
                onReset={resetWeek} />;
 }
 
 /* =================== HOME =================== */
-function Home({ store, days, data, updateData, onSettings, onReset }) {
+function Home({ store, days, data, viewingWeek, realCurrentWeek, goToWeek,
+                updateData, onSettings, onStats, onReset }) {
   const cats = store.categories;
   const weekRangeLabel = `${days[0].date} — ${days[6].date}`;
+  const isCurrent = viewingWeek === realCurrentWeek;
+  const isFuture  = viewingWeek > realCurrentWeek;
 
-  const movement = cats.find(c => c.id === "movement");
-  const fruitveg = cats.find(c => c.id === "fruitveg");
-  const water    = cats.find(c => c.id === "water");
-  let wonWeek = false;
-  if (movement && fruitveg && water) {
-    const mvCount = (data[movement.id]?.values || []).filter(Boolean).length;
-    const fvPerfect = (data[fruitveg.id]?.values || []).filter(d =>
-      Array.isArray(d) && d.length === fruitveg.slots.length && d.every(Boolean)
-    ).length;
-    const goalOz = Math.max(1, Math.round((water.weightLbs || 0) / 2));
-    const bottlesGoal = Math.max(1, Math.ceil(goalOz / Math.max(1, water.bottleOz || 1)));
-    const waterDays = (data[water.id]?.values || []).filter(b => b >= bottlesGoal).length;
-    wonWeek = mvCount >= 5 && fvPerfect >= 6 && waterDays >= 6;
-  }
+  const goPrev = () => goToWeek(shiftWeek(viewingWeek, -7));
+  const goNext = () => { if (!isCurrent && !isFuture) goToWeek(shiftWeek(viewingWeek, 7)); };
 
   return (
     <Page>
       <div style={{ maxWidth:640, margin:"0 auto" }}>
-        <header style={{ textAlign:"center", marginBottom:24, position:"relative" }}>
-          <div style={{ fontSize:11, letterSpacing:4, textTransform:"uppercase", color:C.muted, marginBottom:6 }}>
-            {weekRangeLabel}
+        <header style={{ textAlign:"center", marginBottom:20, position:"relative" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+            <button onClick={onStats} style={iconBtn()} title="Stats">
+              <IconChart size={16} color={C.muted}/>
+            </button>
+            <div style={{ flex:1 }}/>
+            <button onClick={onSettings} style={iconBtn()} title="Edit">
+              <IconSettings size={16} color={C.muted}/>
+            </button>
           </div>
+
           <h1 className="hand" style={{ fontSize:78, fontWeight:700, margin:0, color:C.ink, lineHeight:0.9 }}>
             Piker
           </h1>
@@ -308,34 +331,30 @@ function Home({ store, days, data, updateData, onSettings, onReset }) {
           <div style={{ display:"flex", justifyContent:"center", gap:6, marginTop:12 }}>
             <Dot color={C.yellow} /><Dot color={C.sage} /><Dot color={C.sky} /><Dot color={C.orange} /><Dot color={C.coral} />
           </div>
-          <button onClick={onSettings}
-                  style={{ position:"absolute", top:0, right:0, background:C.card,
-                           border:"1px solid "+C.rule, padding:"8px 10px", borderRadius:999,
-                           cursor:"pointer", color:C.muted, display:"inline-flex", alignItems:"center", gap:6 }}>
-            <IconSettings size={14} color={C.muted} />
-            <span style={{ fontSize:11, letterSpacing:1, textTransform:"uppercase" }}>Edit</span>
-          </button>
-        </header>
 
-        {(movement && fruitveg && water) && (
-          <div style={{
-            padding:"14px 18px",
-            background: wonWeek ? C.sage : C.card,
-            color: wonWeek ? "#fffdf7" : C.inkSoft,
-            border: wonWeek ? "none" : "1px solid "+C.line,
-            borderRadius:12, marginBottom:24, textAlign:"center", fontSize:14,
-          }}>
-            {wonWeek ? (
-              <span><strong>You won the week!</strong> 🌿</span>
-            ) : (
-              <span>Goal: <strong>5+</strong> movement · <strong>6+</strong> clean-eating · <strong>6+</strong> hydrated days</span>
-            )}
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, marginTop:18 }}>
+            <button onClick={goPrev} style={iconBtn()} title="Previous week">
+              <IconChevL size={16} color={C.ink}/>
+            </button>
+            <div style={{ minWidth:170, textAlign:"center" }}>
+              <div style={{ fontSize:11, letterSpacing:3, textTransform:"uppercase", color:C.muted, fontWeight:600 }}>
+                {isCurrent ? "this week" : (viewingWeek < realCurrentWeek ? "looking back" : "ahead")}
+              </div>
+              <div style={{ fontSize:14, color:C.ink, marginTop:2, fontWeight:500 }}>
+                {weekRangeLabel}
+              </div>
+            </div>
+            <button onClick={goNext} disabled={isCurrent || isFuture}
+                    style={{ ...iconBtn(), opacity: (isCurrent||isFuture) ? 0.3 : 1, cursor:(isCurrent||isFuture)?"default":"pointer" }}
+                    title={isCurrent ? "Already on this week" : "Next week"}>
+              <IconChevR size={16} color={C.ink}/>
+            </button>
           </div>
-        )}
+        </header>
 
         {cats.map((cat) => (
           <CategoryCard key={cat.id} cat={cat} days={days}
-                        data={data[cat.id]}
+                        data={data[cat.id] || defaultDataFor(cat)}
                         update={(fn) => updateData(cat.id, fn)} />
         ))}
 
@@ -344,7 +363,7 @@ function Home({ store, days, data, updateData, onSettings, onReset }) {
             background:"transparent", border:"none", color:C.muted, fontSize:12, cursor:"pointer",
             display:"inline-flex", alignItems:"center", gap:6, letterSpacing:1, textTransform:"uppercase",
           }}>
-            <IconReset size={12} color={C.muted}/> Reset week
+            <IconReset size={12} color={C.muted}/> Reset this week
           </button>
         </div>
 
@@ -392,10 +411,10 @@ function Section({ title, subtitle, accent, children }) {
                   border:"1px solid "+C.line, overflow:"hidden",
                   boxShadow:"0 1px 0 rgba(0,0,0,0.02)" }}>
       <div style={{ height:6, background:a.solid }} />
-      <div style={{ padding:"16px 16px 12px", borderBottom:"1px solid "+C.line,
-                    display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:8,
+      <div style={{ padding:"16px 16px 14px", borderBottom:"1px solid "+C.line,
+                    display:"flex", justifyContent:"space-between", alignItems:"center", gap:8,
                     background: a.soft }}>
-        <h2 className="hand" style={{ margin:0, fontSize:32, fontWeight:600, color:C.ink, lineHeight:1 }}>{title}</h2>
+        <h2 style={{ margin:0, fontSize:16, fontWeight:600, color:C.ink, letterSpacing:"-0.2px" }}>{title}</h2>
         <span style={{ fontSize:11, color:C.inkSoft, letterSpacing:1, textTransform:"uppercase", textAlign:"right", fontWeight:600 }}>{subtitle}</span>
       </div>
       {children}
@@ -425,7 +444,7 @@ function MovementCard({ cat, days, data, update }) {
   return (
     <Section title={cat.name} subtitle={`${count} / 7 days`} accent={a}>
       {days.map((d, i) => {
-        const dayCfg = cat.perDay[i] || { label:"Move", duration:"" };
+        const dayCfg = cat.perDay[i] || { label:"Move", icon:"activity" };
         const IconC = ICONS[dayCfg.icon] || IconActivity;
         const done = v[i];
         return (
@@ -439,9 +458,7 @@ function MovementCard({ cat, days, data, update }) {
               <div style={{ fontSize:14, fontWeight:600, textDecoration: done ? "line-through" : "none" }}>
                 {d.name} <span style={{ color:C.muted, fontWeight:400 }}>· {d.date}</span>
               </div>
-              <div style={{ fontSize:13, color:C.inkSoft, marginTop:2 }}>
-                {dayCfg.label}{dayCfg.duration ? <span style={{ color:C.muted }}> · {dayCfg.duration}</span> : null}
-              </div>
+              <div style={{ fontSize:13, color:C.inkSoft, marginTop:2 }}>{dayCfg.label}</div>
             </div>
           </div>
         );
@@ -453,6 +470,7 @@ function MovementCard({ cat, days, data, update }) {
 function SlotsCard({ cat, days, data, update }) {
   const v = data.values;
   const a = accentOf(cat);
+  const headers = cat.slotHeaders && cat.slotHeaders.length === cat.slots.length ? cat.slotHeaders : null;
   const perfect = v.filter(d => Array.isArray(d) && d.length === cat.slots.length && d.every(Boolean)).length;
   const toggle = (di, si) => update(d => {
     const nv = d.values.map(arr => Array.isArray(arr) ? [...arr] : cat.slots.map(() => false));
@@ -479,6 +497,16 @@ function SlotsCard({ cat, days, data, update }) {
                 </div>
                 {allDone && <span style={{ fontSize:11, color:a.solid, letterSpacing:1, textTransform:"uppercase", fontWeight:600 }}>✓ Perfect</span>}
               </div>
+              {headers && (
+                <div style={{ display:"flex", gap:6, marginBottom:4 }}>
+                  {headers.map((h, hi) => (
+                    <div key={hi} style={{ flex:1, textAlign:"center", fontSize:10, color:C.muted,
+                                            letterSpacing:1, textTransform:"uppercase", fontWeight:600 }}>
+                      {h}
+                    </div>
+                  ))}
+                </div>
+              )}
               <div style={{ display:"flex", gap:6 }}>
                 {cat.slots.map((slot, si) => (
                   <button key={si} onClick={() => toggle(i, si)}
@@ -640,6 +668,231 @@ function CheckCard({ cat, days, data, update }) {
   );
 }
 
+/* =================== STATS =================== */
+function dayHit(cat, dayValue) {
+  if (cat.type === "movement" || cat.type === "check") return !!dayValue;
+  if (cat.type === "slots") {
+    if (!Array.isArray(dayValue)) return false;
+    return dayValue.length === cat.slots.length && dayValue.every(Boolean);
+  }
+  if (cat.type === "water") {
+    const goalOz = Math.max(1, Math.round((cat.weightLbs || 0) / 2));
+    const bottleOz = Math.max(1, cat.bottleOz || 1);
+    const bottlesGoal = Math.max(1, Math.ceil(goalOz / bottleOz));
+    return (dayValue || 0) >= bottlesGoal;
+  }
+  if (cat.type === "counter") return (dayValue || 0) > 0;
+  return false;
+}
+
+function Stats({ store, onBack, realCurrentWeek }) {
+  const allWeeks = Object.keys(store.weeks).sort(); // oldest first
+  // include the current week even if empty
+  if (!allWeeks.includes(realCurrentWeek)) allWeeks.push(realCurrentWeek);
+  allWeeks.sort();
+  const last8 = allWeeks.slice(-8);
+
+  return (
+    <Page>
+      <div style={{ maxWidth:640, margin:"0 auto" }}>
+        <TopBar onBack={onBack} title="Your stats" />
+
+        <div style={{ background:C.card, border:"1px solid "+C.line, borderRadius:14, padding:18, marginBottom:20 }}>
+          <div style={{ fontSize:12, color:C.muted, letterSpacing:1, textTransform:"uppercase", marginBottom:8, fontWeight:600 }}>
+            This week so far
+          </div>
+          <ThisWeekSummary store={store} wk={realCurrentWeek} />
+        </div>
+
+        {store.categories.map(cat => (
+          <CategoryStats key={cat.id} cat={cat} store={store} weeks={last8}
+                         realCurrentWeek={realCurrentWeek} allWeeks={allWeeks}/>
+        ))}
+
+        <Footer />
+      </div>
+    </Page>
+  );
+}
+
+function ThisWeekSummary({ store, wk }) {
+  const data = store.weeks[wk] || {};
+  return (
+    <div style={{ display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:10 }}>
+      {store.categories.map(cat => {
+        const a = accentOf(cat);
+        const cv = (data[cat.id] && data[cat.id].values) || [];
+        const hits = cv.filter((v, i) => dayHit(cat, v)).length;
+        return (
+          <div key={cat.id} style={{ border:"1px solid "+C.line, borderRadius:10, padding:"10px 12px",
+                                     display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ width:8, height:34, borderRadius:4, background:a.solid, flexShrink:0 }} />
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:13, fontWeight:600, color:C.ink, whiteSpace:"nowrap",
+                            overflow:"hidden", textOverflow:"ellipsis" }}>{cat.name}</div>
+              <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                <strong style={{ color:a.solid, fontSize:14 }}>{hits}</strong> / 7 days
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CategoryStats({ cat, store, weeks, allWeeks }) {
+  const a = accentOf(cat);
+
+  // streak: count consecutive days hit, walking backwards from most recent day with data
+  // Combine daily series across all weeks (oldest first), then trim to today.
+  const today = new Date(); today.setHours(0,0,0,0);
+  const series = []; // { iso, hit }
+  for (const wk of allWeeks) {
+    const data = store.weeks[wk]?.[cat.id]?.values;
+    const days = buildDaysForWeek(new Date(wk + "T00:00:00"));
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(days[i].iso + "T00:00:00");
+      if (d > today) continue;
+      const hit = data ? dayHit(cat, data[i]) : false;
+      series.push({ iso: days[i].iso, hit });
+    }
+  }
+  // current streak (from end backwards)
+  let currentStreak = 0;
+  for (let i = series.length - 1; i >= 0; i--) {
+    if (series[i].hit) currentStreak++; else break;
+  }
+  // best streak ever
+  let best = 0, run = 0;
+  for (const s of series) { if (s.hit) { run++; best = Math.max(best, run); } else run = 0; }
+  // total
+  const totalHits = series.filter(s => s.hit).length;
+  const totalDays = series.length || 1;
+
+  return (
+    <div style={{ background:C.card, border:"1px solid "+C.line, borderRadius:14, marginBottom:20, overflow:"hidden" }}>
+      <div style={{ height:6, background:a.solid }} />
+      <div style={{ padding:"14px 16px 12px", background:a.soft, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <h3 style={{ margin:0, fontSize:15, fontWeight:600, color:C.ink }}>{cat.name}</h3>
+        <span style={{ fontSize:11, color:C.inkSoft, letterSpacing:1, textTransform:"uppercase", fontWeight:600 }}>
+          {totalHits} / {totalDays} days
+        </span>
+      </div>
+
+      <div style={{ padding:"14px 16px 6px", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+        <Stat label="Current streak" value={currentStreak} suffix={currentStreak === 1 ? "day" : "days"} accent={a}/>
+        <Stat label="Best streak" value={best} suffix={best === 1 ? "day" : "days"} accent={a}/>
+        <Stat label="Hit rate" value={Math.round((totalHits/totalDays)*100)} suffix="%" accent={a}/>
+      </div>
+
+      <div style={{ padding:"6px 16px 14px" }}>
+        <div style={{ fontSize:11, color:C.muted, letterSpacing:1, textTransform:"uppercase", marginBottom:8, fontWeight:600 }}>
+          Last {weeks.length} {weeks.length === 1 ? "week" : "weeks"}
+        </div>
+        <Heatmap cat={cat} store={store} weeks={weeks} accent={a}/>
+        <Bars cat={cat} store={store} weeks={weeks} accent={a}/>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, suffix, accent }) {
+  const a = accent || ACCENTS.sage;
+  return (
+    <div style={{ background:C.card, border:"1px solid "+C.line, borderRadius:10, padding:"8px 10px", textAlign:"center" }}>
+      <div style={{ fontSize:10, color:C.muted, letterSpacing:1, textTransform:"uppercase", fontWeight:600 }}>{label}</div>
+      <div style={{ fontSize:22, fontWeight:700, color:a.solid, marginTop:2, fontVariantNumeric:"tabular-nums" }}>
+        {value}<span style={{ fontSize:11, color:C.muted, marginLeft:3, fontWeight:500 }}>{suffix}</span>
+      </div>
+    </div>
+  );
+}
+
+function Heatmap({ cat, store, weeks, accent }) {
+  const a = accent || ACCENTS.sage;
+  const cell = 18, gap = 4;
+  return (
+    <div style={{ overflowX:"auto" }}>
+      <div style={{ display:"grid", gridTemplateColumns:`60px repeat(7, ${cell}px)`, gap, alignItems:"center" }}>
+        <div />
+        {DAY_SHORT.map((d, i) => (
+          <div key={i} style={{ fontSize:10, color:C.muted, textAlign:"center", fontWeight:600 }}>{d}</div>
+        ))}
+        {weeks.map((wk) => {
+          const data = store.weeks[wk]?.[cat.id]?.values;
+          const days = buildDaysForWeek(new Date(wk + "T00:00:00"));
+          return (
+            <React.Fragment key={wk}>
+              <div style={{ fontSize:10, color:C.muted, paddingRight:6, textAlign:"right", whiteSpace:"nowrap" }}>
+                {days[0].date}
+              </div>
+              {Array.from({length:7}).map((_, i) => {
+                const today = new Date(); today.setHours(0,0,0,0);
+                const d = new Date(days[i].iso + "T00:00:00");
+                const future = d > today;
+                const hit = data ? dayHit(cat, data[i]) : false;
+                return (
+                  <div key={i} style={{
+                    width:cell, height:cell, borderRadius:4,
+                    background: future ? "transparent" : (hit ? a.solid : a.soft),
+                    border: future ? "1px dashed "+C.rule : "none",
+                  }} title={`${days[i].iso}${hit?" · hit":""}`} />
+                );
+              })}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Bars({ cat, store, weeks, accent }) {
+  const a = accent || ACCENTS.sage;
+  // % per week
+  const data = weeks.map(wk => {
+    const v = store.weeks[wk]?.[cat.id]?.values;
+    if (!v) return { wk, pct: 0 };
+    const today = new Date(); today.setHours(0,0,0,0);
+    const days = buildDaysForWeek(new Date(wk + "T00:00:00"));
+    let possible = 0, hits = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(days[i].iso + "T00:00:00");
+      if (d > today) continue;
+      possible++;
+      if (dayHit(cat, v[i])) hits++;
+    }
+    return { wk, pct: possible ? Math.round((hits/possible)*100) : 0, label: days[0].date };
+  });
+
+  return (
+    <div style={{ marginTop:14 }}>
+      <div style={{ fontSize:11, color:C.muted, letterSpacing:1, textTransform:"uppercase", marginBottom:8, fontWeight:600 }}>
+        Weekly hit rate
+      </div>
+      <div style={{ display:"flex", alignItems:"flex-end", gap:6, height:80,
+                    borderBottom:"1px solid "+C.line, paddingBottom:4 }}>
+        {data.map((d, i) => (
+          <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4, height:"100%" }}>
+            <div style={{ flex:1, width:"100%", display:"flex", alignItems:"flex-end" }}>
+              <div style={{ width:"100%", height:`${d.pct}%`, background:a.solid, borderRadius:"4px 4px 0 0",
+                            minHeight: d.pct > 0 ? 2 : 0 }} title={`${d.pct}%`} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display:"flex", gap:6, marginTop:4 }}>
+        {data.map((d, i) => (
+          <div key={i} style={{ flex:1, fontSize:9, color:C.muted, textAlign:"center", fontWeight:500 }}>
+            {d.label || d.wk.slice(5)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* =================== SETTINGS =================== */
 function Settings({ store, updateCategories, onBack, onEdit }) {
   const [adding, setAdding] = useState(false);
@@ -658,8 +911,8 @@ function Settings({ store, updateCategories, onBack, onEdit }) {
                             display:"flex", alignItems:"center", gap:12 }}>
                 <span style={{ width:10, height:30, borderRadius:4, background:a.solid, flexShrink:0 }} />
                 <div style={{ flex:1 }}>
-                  <div className="hand" style={{ fontSize:24, fontWeight:600, color:C.ink, lineHeight:1 }}>{cat.name}</div>
-                  <div style={{ fontSize:12, color:C.muted, marginTop:4 }}>{labelForType(cat)}</div>
+                  <div style={{ fontSize:15, fontWeight:600, color:C.ink }}>{cat.name}</div>
+                  <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>{labelForType(cat)}</div>
                 </div>
                 <button onClick={() => onEdit(cat.id)} style={pillBtn()}>Edit</button>
                 <button title="Delete category"
@@ -720,10 +973,10 @@ function NewCategoryForm({ onCreate, onCancel, existingCount }) {
     let cat = { id, name: trimmed, type, accent };
     if (type === "check")    cat = { ...cat, subtitle: "", icon: "heart" };
     if (type === "counter")  cat = { ...cat, subtitle: "", max: 3, icon: "coffee" };
-    if (type === "slots")    cat = { ...cat, subtitle: "", slots: ["Slot 1","Slot 2","Slot 3"] };
+    if (type === "slots")    cat = { ...cat, subtitle: "", slots: ["Slot 1","Slot 2","Slot 3"], slotHeaders: ["", "", ""] };
     if (type === "water")    cat = { ...cat, subtitle: "Half your weight in ounces. That's the rule.", weightLbs: 150, bottleOz: 24 };
     if (type === "movement") cat = { ...cat, subtitle: "5+ days a week",
-      perDay: Array.from({length:7}).map(() => ({ label:"Move", duration:"30 min", icon:"activity" })) };
+      perDay: Array.from({length:7}).map(() => ({ label:"Move", icon:"activity" })) };
     onCreate(cat);
   };
   return (
@@ -817,8 +1070,9 @@ function CategoryEditor({ store, catId, updateCategories, onBack }) {
           )}
 
           {cat.type === "slots" && (
-            <Field label="Slots (one per row — these are the buttons you tap each day)">
-              <SlotsEditor slots={cat.slots} onChange={(slots) => patch({ slots })} />
+            <Field label="Slots (header above + button label)">
+              <SlotsEditor slots={cat.slots} headers={cat.slotHeaders || cat.slots.map(()=>"")}
+                           onChange={(slots, headers) => patch({ slots, slotHeaders: headers })} />
             </Field>
           )}
 
@@ -850,17 +1104,25 @@ function ColorPicker({ value, onChange }) {
   );
 }
 
-function SlotsEditor({ slots, onChange }) {
-  const set = (i, v) => onChange(slots.map((s, idx) => idx === i ? v : s));
-  const add = () => onChange([...slots, "Slot " + (slots.length + 1)]);
-  const remove = (i) => onChange(slots.filter((_, idx) => idx !== i));
+function SlotsEditor({ slots, headers, onChange }) {
+  const setSlot = (i, v) => onChange(slots.map((s, idx) => idx === i ? v : s), headers);
+  const setHeader = (i, v) => onChange(slots, headers.map((h, idx) => idx === i ? v : h));
+  const add = () => onChange([...slots, "Slot " + (slots.length + 1)], [...headers, ""]);
+  const remove = (i) => onChange(slots.filter((_, idx) => idx !== i), headers.filter((_, idx) => idx !== i));
   return (
     <div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 36px", gap:6, marginBottom:6 }}>
+        <div style={{ fontSize:10, color:C.muted, letterSpacing:1, textTransform:"uppercase", fontWeight:600 }}>Header (above)</div>
+        <div style={{ fontSize:10, color:C.muted, letterSpacing:1, textTransform:"uppercase", fontWeight:600 }}>Button label</div>
+        <div />
+      </div>
       {slots.map((s, i) => (
-        <div key={i} style={{ display:"flex", gap:6, marginBottom:6 }}>
-          <input value={s} onChange={e => set(i, e.target.value)} style={{ ...inputStyle(), flex:1 }} />
+        <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 36px", gap:6, marginBottom:6 }}>
+          <input value={headers[i] || ""} onChange={e => setHeader(i, e.target.value)}
+                 placeholder="(optional)" style={inputStyle()} />
+          <input value={s} onChange={e => setSlot(i, e.target.value)} style={inputStyle()} />
           <button onClick={() => remove(i)} disabled={slots.length <= 1}
-                  style={{ ...pillBtn(), opacity: slots.length <= 1 ? 0.4 : 1 }}>
+                  style={{ ...pillBtn(), padding:"6px", opacity: slots.length <= 1 ? 0.4 : 1 }}>
             <IconTrash size={14} color={C.muted}/>
           </button>
         </div>
@@ -877,16 +1139,12 @@ function PerDayEditor({ perDay, onChange, accent }) {
   return (
     <div>
       {DAY_NAMES.map((name, i) => {
-        const d = perDay[i] || { label:"", duration:"", icon:"activity" };
+        const d = perDay[i] || { label:"", icon:"activity" };
         return (
           <div key={i} style={{ borderBottom:"1px solid "+C.line, padding:"10px 0" }}>
             <div style={{ fontSize:12, fontWeight:600, color:C.ink, marginBottom:6 }}>{name}</div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginBottom:6 }}>
-              <input value={d.label} placeholder="Activity (e.g. Hike)"
-                     onChange={e => set(i, "label", e.target.value)} style={inputStyle()} />
-              <input value={d.duration} placeholder="Duration (e.g. 60 min)"
-                     onChange={e => set(i, "duration", e.target.value)} style={inputStyle()} />
-            </div>
+            <input value={d.label} placeholder="Activity (e.g. Hike)"
+                   onChange={e => set(i, "label", e.target.value)} style={{ ...inputStyle(), marginBottom:6 }} />
             <IconPicker value={d.icon} onChange={(v) => set(i, "icon", v)} accent={accent}/>
           </div>
         );
@@ -935,7 +1193,7 @@ function TopBar({ onBack, title, accentColor }) {
         <IconArrowLeft size={14} color={C.muted}/> Back
       </button>
       {accentColor && <span style={{ width:6, height:28, borderRadius:3, background:accentColor }} />}
-      <h1 className="hand" style={{ margin:0, fontSize:36, fontWeight:600, color:C.ink, lineHeight:1 }}>{title}</h1>
+      <h1 style={{ margin:0, fontSize:20, fontWeight:600, color:C.ink }}>{title}</h1>
     </div>
   );
 }
@@ -958,6 +1216,11 @@ function pillBtn() {
   return { padding:"8px 12px", border:"1px solid "+C.rule, background:C.card,
            borderRadius:999, color:C.muted, fontSize:11, letterSpacing:1, textTransform:"uppercase",
            cursor:"pointer", fontWeight:600 };
+}
+function iconBtn() {
+  return { padding:"8px", border:"1px solid "+C.rule, background:C.card,
+           borderRadius:999, color:C.muted, cursor:"pointer", display:"inline-flex",
+           alignItems:"center", justifyContent:"center", width:32, height:32 };
 }
 function primaryBtn() {
   return { padding:"10px 16px", border:"none", background:C.sage, color:"#fffdf7",

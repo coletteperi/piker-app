@@ -4,12 +4,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Piker — track your week. don't be a piker!</title>
-<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='10' y='10' width='30' height='30' fill='%232d4a2b'/><rect x='40' y='10' width='30' height='30' fill='%23e8b633'/><rect x='10' y='40' width='30' height='30' fill='%231f3a6b'/><rect x='40' y='40' width='30' height='30' fill='%23d8623a'/></svg>" />
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='0' y='0' width='50' height='50' fill='%23c8d0d3'/><rect x='50' y='0' width='50' height='50' fill='%238b5e3c'/><rect x='0' y='50' width='50' height='50' fill='%23d8b033'/><rect x='50' y='50' width='50' height='50' fill='%238c8e3e'/></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  html, body, #root { margin:0; padding:0; min-height:100%; background:#fafaf5; }
+  html, body, #root { margin:0; padding:0; min-height:100%; background:#f6f3ec; }
   body {
     -webkit-font-smoothing: antialiased;
     font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
@@ -29,7 +29,7 @@
   }
   input:focus, select:focus, textarea:focus { outline: none; border-bottom-color: #1a1a1a; }
   a { color: inherit; }
-  ::selection { background: #e8b633; color: #1a1a1a; }
+  ::selection { background: #d8b033; color: #1a1a1a; }
 </style>
 </head>
 <body>
@@ -42,7 +42,7 @@
 <script type="text/babel" data-presets="react">
 const { useState, useEffect } = React;
 
-const STORAGE_KEY = "piker_app_v4";
+const STORAGE_KEY = "piker_app_v5";
 const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const DAY_SHORT = ["S","M","T","W","T","F","S"];
 
@@ -99,52 +99,69 @@ function buildDaysForWeek(weekStart) {
   });
 }
 
-/* ---------- Color tokens — Pinterest-inspired ---------- */
+/* ---------- Color palette — NARI-inspired ---------- */
 const C = {
-  bg:      "#fafaf5",
+  bg:      "#f6f3ec",
   bgAlt:   "#ffffff",
   card:    "#ffffff",
   ink:     "#1a1a1a",
   inkSoft: "#3d3d3d",
-  muted:   "#8a8a82",
-  line:    "#ececec",
-  rule:    "#d4d4d4",
+  muted:   "#8a8580",
+  line:    "#e6e0d4",
+  rule:    "#c8c0b0",
 };
 const ACCENTS = {
-  forest:     { solid: "#2d4a2b", soft: "#dde7d6", onSolid: "#fafaf5" },
-  olive:      { solid: "#6b7a3a", soft: "#e8e4cc", onSolid: "#fafaf5" },
-  mustard:    { solid: "#e8b633", soft: "#fff4d4", onSolid: "#1a1a1a" },
-  navy:       { solid: "#1f3a6b", soft: "#d6dce8", onSolid: "#fafaf5" },
-  royal:      { solid: "#3a64b8", soft: "#dbe4f4", onSolid: "#fafaf5" },
-  sky:        { solid: "#88b4d4", soft: "#e0eaf3", onSolid: "#1a1a1a" },
-  terracotta: { solid: "#d8623a", soft: "#f7d8c8", onSolid: "#fafaf5" },
-  coral:      { solid: "#e89890", soft: "#fbe0dc", onSolid: "#1a1a1a" },
-  ink:        { solid: "#1a1a1a", soft: "#e0e0e0", onSolid: "#fafaf5" },
+  orange:   { solid: "#d8542d", soft: "#f4d4c5", onSolid: "#fafaf5" },
+  brown:    { solid: "#8b5e3c", soft: "#dcc4b3", onSolid: "#fafaf5" },
+  mustard:  { solid: "#d8b033", soft: "#f0e0a8", onSolid: "#1a1a1a" },
+  olive:    { solid: "#8c8e3e", soft: "#dcdcaa", onSolid: "#fafaf5" },
+  sky:      { solid: "#88a8c0", soft: "#d5e0e9", onSolid: "#1a1a1a" },
+  lavender: { solid: "#b5c1d6", soft: "#e3e8ef", onSolid: "#1a1a1a" },
+  pink:     { solid: "#e89bb0", soft: "#f8e0e7", onSolid: "#1a1a1a" },
+  ink:      { solid: "#1a1a1a", soft: "#e0e0e0", onSolid: "#fafaf5" },
 };
-const ACCENT_KEYS = ["forest","mustard","navy","terracotta","royal","olive","coral","sky","ink"];
-function accentOf(cat) { return ACCENTS[cat?.accent] || ACCENTS.forest; }
+const ACCENT_KEYS = ["orange","mustard","olive","sky","brown","pink","lavender","ink"];
+function accentOf(cat) { return ACCENTS[cat?.accent] || ACCENTS.olive; }
 
-/* ---------- Defaults: 3 starter habits ---------- */
+/* ---------- Exercises ---------- */
+const PRESET_EXERCISES = [
+  { label: "Walking",    icon: "waves" },
+  { label: "Hiking",     icon: "mountain" },
+  { label: "Pilates",    icon: "activity" },
+  { label: "Running",    icon: "activity" },
+  { label: "Yoga",       icon: "leaf" },
+  { label: "Swimming",   icon: "waves" },
+  { label: "Cycling",    icon: "activity" },
+  { label: "Weights",    icon: "activity" },
+  { label: "Dancing",    icon: "heart" },
+  { label: "Stretching", icon: "leaf" },
+  { label: "Climbing",   icon: "mountain" },
+  { label: "Surfing",    icon: "waves" },
+];
+function derivePerDay(exercises) {
+  const exs = exercises && exercises.length ? exercises : [{ label:"Move", icon:"activity" }];
+  return Array.from({ length:7 }, (_, i) => ({ ...exs[i % exs.length] }));
+}
+
+/* ---------- Defaults ---------- */
 function defaultCategories() {
+  const exercises = [
+    { label: "Walking", icon: "waves" },
+    { label: "Hiking",  icon: "mountain" },
+    { label: "Pilates", icon: "activity" },
+  ];
   return [
     {
       id: "movement", name: "Movement", type: "movement",
       subtitle: "5+ days a week, however feels good",
-      accent: "forest",
-      perDay: [
-        { label: "Beach walk",        icon: "waves" },
-        { label: "Pilates class",     icon: "activity" },
-        { label: "Hike",              icon: "mountain" },
-        { label: "Rest or easy walk", icon: "wind" },
-        { label: "Pilates or run",    icon: "activity" },
-        { label: "Beach walk",        icon: "waves" },
-        { label: "Long hike or run",  icon: "mountain" },
-      ],
+      accent: "olive",
+      exercises,
+      perDay: derivePerDay(exercises),
     },
     {
       id: "water", name: "Water", type: "water",
       subtitle: "half your weight in ounces. that's the rule.",
-      accent: "royal",
+      accent: "sky",
       weightLbs: 150, bottleOz: 24,
     },
     {
@@ -284,14 +301,14 @@ function App() {
 
 /* =================== ONBOARDING =================== */
 function Onboarding({ onComplete }) {
-  const [step, setStep] = useState("welcome"); // welcome | setup
+  const [step, setStep] = useState("welcome");
   const [cats, setCats] = useState(defaultCategories());
 
   if (step === "welcome") {
     return (
       <Page>
         <div style={{ maxWidth:480, margin:"60px auto", padding:"0 8px" }}>
-          <ColorBlocks />
+          <ColorBlocks/>
           <h1 style={wordmarkStyle(78)}>PIKER</h1>
           <p style={{ textAlign:"center", color:C.muted, fontSize:13, marginTop:10, letterSpacing:"0.02em" }}>
             track your week. don't be a piker!
@@ -319,7 +336,6 @@ function Onboarding({ onComplete }) {
     );
   }
 
-  // setup step
   const update = (id, changes) => setCats(cs => cs.map(c => c.id === id ? { ...c, ...changes } : c));
   const remove = (id) => setCats(cs => cs.filter(c => c.id !== id));
   const addCustom = () => {
@@ -327,7 +343,10 @@ function Onboarding({ onComplete }) {
     const accent = ACCENT_KEYS[cats.length % ACCENT_KEYS.length];
     setCats([...cats, { id, name: "New habit", type: "check", accent, subtitle: "", icon: "heart" }]);
   };
-  const canContinue = cats.length >= 3;
+
+  const movement = cats.find(c => c.type === "movement");
+  const movementOk = !movement || (movement.exercises && movement.exercises.length === 3);
+  const canContinue = cats.length >= 3 && movementOk;
 
   return (
     <Page>
@@ -339,7 +358,7 @@ function Onboarding({ onComplete }) {
           set up your week
         </h1>
         <p style={{ fontSize:12, color:C.muted, margin:"0 0 24px" }}>
-          start with at least 3 things to track. you can edit, add, or remove anytime.
+          start with at least 3 things to track. you can edit anytime.
         </p>
 
         {cats.map((cat) => (
@@ -362,7 +381,7 @@ function Onboarding({ onComplete }) {
           </button>
           {!canContinue && (
             <div style={{ fontSize:11, color:C.muted, marginTop:10 }}>
-              add at least 3 habits to continue
+              {cats.length < 3 ? "add at least 3 habits to continue" : "pick 3 favorite exercises to continue"}
             </div>
           )}
         </div>
@@ -393,16 +412,25 @@ function OnboardingCard({ cat, onChange, onRemove, canRemove }) {
           <ColorPicker value={cat.accent} onChange={(v) => onChange({ accent: v })}/>
         </Field>
 
+        {cat.type === "movement" && (
+          <Field label="pick 3 favorite exercises">
+            <ExercisePicker
+              value={cat.exercises || []}
+              onChange={(exs) => onChange({ exercises: exs, perDay: derivePerDay(exs) })}
+              accent={a}/>
+          </Field>
+        )}
+
         {cat.type === "water" && (
           <>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
               <Field label="your weight (lbs)">
-                <input type="number" min="40" max="500" value={cat.weightLbs}
-                       onChange={e => onChange({ weightLbs: clampInt(e.target.value, 40, 500, 150) })}/>
+                <NumberInput value={cat.weightLbs} min={40} max={500} fallback={150}
+                             onChange={(v) => onChange({ weightLbs: v })}/>
               </Field>
               <Field label="bottle size (oz)">
-                <input type="number" min="4" max="128" value={cat.bottleOz}
-                       onChange={e => onChange({ bottleOz: clampInt(e.target.value, 4, 128, 24) })}/>
+                <NumberInput value={cat.bottleOz} min={4} max={128} fallback={24}
+                             onChange={(v) => onChange({ bottleOz: v })}/>
               </Field>
             </div>
             <div style={hintStyle()}>
@@ -421,6 +449,103 @@ function OnboardingCard({ cat, onChange, onRemove, canRemove }) {
         )}
       </div>
     </div>
+  );
+}
+
+/* =================== EXERCISE PICKER =================== */
+function ExercisePicker({ value, onChange, accent }) {
+  const a = accent || ACCENTS.olive;
+  const [custom, setCustom] = useState("");
+
+  const isSelected = (label) => value.some(v => v.label.toLowerCase() === label.toLowerCase());
+  const togglePreset = (preset) => {
+    if (isSelected(preset.label)) {
+      onChange(value.filter(v => v.label.toLowerCase() !== preset.label.toLowerCase()));
+    } else if (value.length < 3) {
+      onChange([...value, preset]);
+    }
+  };
+  const addCustom = () => {
+    const trimmed = custom.trim();
+    if (!trimmed || isSelected(trimmed) || value.length >= 3) return;
+    onChange([...value, { label: trimmed, icon: "activity" }]);
+    setCustom("");
+  };
+
+  // preset list to show — include any custom values not in PRESET_EXERCISES at the top
+  const customSelected = value.filter(v => !PRESET_EXERCISES.find(p => p.label.toLowerCase() === v.label.toLowerCase()));
+  const allChips = [...customSelected, ...PRESET_EXERCISES];
+
+  return (
+    <div>
+      <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:10 }}>
+        {allChips.map((ex) => {
+          const on = isSelected(ex.label);
+          const dim = !on && value.length >= 3;
+          return (
+            <button key={ex.label} onClick={() => togglePreset(ex)}
+                    disabled={dim}
+                    style={{
+                      padding:"7px 12px",
+                      border:"1px solid "+(on ? a.solid : C.rule),
+                      background: on ? a.solid : "transparent",
+                      color: on ? a.onSolid : (dim ? C.muted : C.ink),
+                      fontSize:12, fontWeight: on ? 700 : 500,
+                      cursor: dim ? "not-allowed" : "pointer",
+                      opacity: dim ? 0.5 : 1,
+                      letterSpacing:"0.02em",
+                      borderRadius:0,
+                    }}>
+              {ex.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:8 }}>
+        <input value={custom} onChange={e => setCustom(e.target.value)}
+               placeholder="or type your own…"
+               onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom(); } }}
+               disabled={value.length >= 3}
+               style={{ flex:1, opacity: value.length >= 3 ? 0.5 : 1 }}/>
+        <button onClick={addCustom} disabled={!custom.trim() || value.length >= 3}
+                style={{ ...pillBtn(), opacity:(!custom.trim() || value.length >= 3) ? 0.4 : 1 }}>
+          add
+        </button>
+      </div>
+
+      <div style={{ fontSize:10, color:C.muted, letterSpacing:"0.1em", textTransform:"uppercase", fontWeight:700 }}>
+        {value.length} / 3 picked
+      </div>
+    </div>
+  );
+}
+
+/* =================== NUMBER INPUT (forgiving) =================== */
+function NumberInput({ value, onChange, min, max, fallback, ...rest }) {
+  const [local, setLocal] = useState(String(value ?? ""));
+  useEffect(() => { setLocal(String(value ?? "")); }, [value]);
+  const commit = () => {
+    const n = parseInt(local, 10);
+    if (isNaN(n)) {
+      onChange(fallback);
+      setLocal(String(fallback));
+    } else {
+      const clamped = Math.max(min, Math.min(max, n));
+      onChange(clamped);
+      setLocal(String(clamped));
+    }
+  };
+  return (
+    <input type="number" inputMode="numeric"
+           value={local}
+           onChange={(e) => {
+             setLocal(e.target.value);
+             const n = parseInt(e.target.value, 10);
+             if (!isNaN(n) && n >= min && n <= max) onChange(n);
+           }}
+           onBlur={commit}
+           {...rest}/>
   );
 }
 
@@ -443,7 +568,7 @@ function Home({ store, days, data, viewingWeek, realCurrentWeek, goToWeek,
             <button onClick={onSettings} style={iconBtn()} title="edit"><IconSettings size={16} color={C.ink}/></button>
           </div>
 
-          <ColorBlocks />
+          <ColorBlocks/>
           <h1 style={wordmarkStyle(72)}>PIKER</h1>
           <p style={{ textAlign:"center", color:C.muted, fontSize:13, marginTop:10, marginBottom:0, letterSpacing:"0.02em" }}>
             track your week. don't be a piker!
@@ -492,7 +617,7 @@ function Home({ store, days, data, viewingWeek, realCurrentWeek, goToWeek,
 }
 
 function ColorBlocks() {
-  const blocks = ["forest","mustard","navy","terracotta","royal"];
+  const blocks = ["orange","mustard","olive","sky","pink"];
   return (
     <div style={{ display:"flex", justifyContent:"center", gap:0, marginBottom:14 }}>
       {blocks.map(k => (
@@ -529,7 +654,7 @@ function CategoryCard({ cat, days, data, update }) {
 }
 
 function Section({ title, subtitle, accent, children }) {
-  const a = accent || ACCENTS.forest;
+  const a = accent || ACCENTS.olive;
   return (
     <div style={{ marginBottom:20, background:C.card, border:"1px solid "+C.line, overflow:"hidden" }}>
       <div style={{ background:a.solid, padding:"14px 16px",
@@ -545,7 +670,7 @@ function Section({ title, subtitle, accent, children }) {
 }
 
 function Circle({ done, accent }) {
-  const a = accent || ACCENTS.forest;
+  const a = accent || ACCENTS.olive;
   return (
     <div style={{ width:22, height:22, borderRadius:"50%",
                   border: "1.5px solid "+(done ? a.solid : C.muted),
@@ -560,10 +685,11 @@ function MovementCard({ cat, days, data, update }) {
   const v = data.values, a = accentOf(cat);
   const count = v.filter(Boolean).length;
   const toggle = (i) => update(d => { const nv = [...d.values]; nv[i] = !nv[i]; return { ...d, values: nv }; });
+  const perDay = (cat.perDay && cat.perDay.length === 7) ? cat.perDay : derivePerDay(cat.exercises);
   return (
     <Section title={cat.name} subtitle={`${count} / 7 days`} accent={a}>
       {days.map((d, i) => {
-        const dayCfg = cat.perDay[i] || { label:"Move", icon:"activity" };
+        const dayCfg = perDay[i] || { label:"Move", icon:"activity" };
         const IconC = ICONS[dayCfg.icon] || IconActivity;
         const done = v[i];
         return (
@@ -689,7 +815,7 @@ function WaterCard({ cat, days, data, update }) {
 }
 
 function Bottle({ filled, onClick, color }) {
-  const c = color || ACCENTS.royal.solid;
+  const c = color || ACCENTS.sky.solid;
   return (
     <svg width="18" height="28" viewBox="0 0 18 28" onClick={onClick} style={{ cursor:"pointer" }}>
       <rect x="6" y="1" width="6" height="3" fill={C.muted} rx="0.5"/>
@@ -818,7 +944,7 @@ function Stats({ store, onBack, realCurrentWeek }) {
 function ThisWeekSummary({ store, wk }) {
   const data = store.weeks[wk] || {};
   return (
-    <div style={{ display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:8 }}>
+    <div style={{ display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:8, marginTop:8 }}>
       {store.categories.map(cat => {
         const a = accentOf(cat);
         const cv = (data[cat.id] && data[cat.id].values) || [];
@@ -891,7 +1017,7 @@ function CategoryStats({ cat, store, weeks, allWeeks }) {
 }
 
 function Stat({ label, value, suffix, accent }) {
-  const a = accent || ACCENTS.forest;
+  const a = accent || ACCENTS.olive;
   return (
     <div style={{ border:"1px solid "+C.line, padding:"10px 8px", textAlign:"center" }}>
       <div style={{ fontSize:9, color:C.muted, letterSpacing:"0.14em", textTransform:"uppercase", fontWeight:700 }}>{label}</div>
@@ -903,7 +1029,7 @@ function Stat({ label, value, suffix, accent }) {
 }
 
 function Heatmap({ cat, store, weeks, accent }) {
-  const a = accent || ACCENTS.forest;
+  const a = accent || ACCENTS.olive;
   const cell = 18, gap = 4;
   return (
     <div style={{ overflowX:"auto" }}>
@@ -942,7 +1068,7 @@ function Heatmap({ cat, store, weeks, accent }) {
 }
 
 function Bars({ cat, store, weeks, accent }) {
-  const a = accent || ACCENTS.forest;
+  const a = accent || ACCENTS.olive;
   const data = weeks.map(wk => {
     const v = store.weeks[wk]?.[cat.id]?.values;
     if (!v) return { wk, pct: 0, label: wk.slice(5) };
@@ -1064,8 +1190,10 @@ function NewCategoryForm({ onCreate, onCancel, existingCount }) {
     if (type === "counter")  cat = { ...cat, subtitle: "", max: 3, icon: "coffee" };
     if (type === "slots")    cat = { ...cat, subtitle: "", slots: ["Slot 1","Slot 2","Slot 3"], slotHeaders: ["", "", ""] };
     if (type === "water")    cat = { ...cat, subtitle: "half your weight in ounces.", weightLbs: 150, bottleOz: 24 };
-    if (type === "movement") cat = { ...cat, subtitle: "5+ days a week",
-      perDay: Array.from({length:7}).map(() => ({ label:"Move", icon:"activity" })) };
+    if (type === "movement") {
+      const exs = [{ label:"Walking", icon:"waves" },{ label:"Hiking", icon:"mountain" },{ label:"Pilates", icon:"activity" }];
+      cat = { ...cat, subtitle: "5+ days a week", exercises: exs, perDay: derivePerDay(exs) };
+    }
     onCreate(cat);
   };
   return (
@@ -1116,8 +1244,8 @@ function CategoryEditor({ store, catId, updateCategories, onBack }) {
           {cat.type === "counter" && (
             <>
               <Field label="max per day">
-                <input type="number" min="1" max="20" value={cat.max}
-                       onChange={e => patch({ max: clampInt(e.target.value, 1, 20, 3) })}/>
+                <NumberInput value={cat.max} min={1} max={20} fallback={3}
+                             onChange={(v) => patch({ max: v })}/>
               </Field>
               <Field label="icon"><IconPicker value={cat.icon} onChange={v => patch({ icon: v })} accent={a}/></Field>
             </>
@@ -1130,15 +1258,15 @@ function CategoryEditor({ store, catId, updateCategories, onBack }) {
           {cat.type === "water" && (
             <>
               <Field label="your weight (lbs)">
-                <input type="number" min="40" max="500" value={cat.weightLbs}
-                       onChange={e => patch({ weightLbs: clampInt(e.target.value, 40, 500, 150) })}/>
+                <NumberInput value={cat.weightLbs} min={40} max={500} fallback={150}
+                             onChange={(v) => patch({ weightLbs: v })}/>
                 <div style={hintStyle()}>
                   daily goal = weight ÷ 2 oz. right now: <strong>{Math.round((cat.weightLbs||0)/2)} oz/day</strong>.
                 </div>
               </Field>
               <Field label="water bottle size (oz)">
-                <input type="number" min="4" max="128" value={cat.bottleOz}
-                       onChange={e => patch({ bottleOz: clampInt(e.target.value, 4, 128, 24) })}/>
+                <NumberInput value={cat.bottleOz} min={4} max={128} fallback={24}
+                             onChange={(v) => patch({ bottleOz: v })}/>
                 <div style={hintStyle()}>
                   bottles to fill per day:{" "}
                   <strong>{Math.max(1, Math.floor(((cat.weightLbs||0)/2) / Math.max(1, cat.bottleOz||1)))}</strong>
@@ -1155,8 +1283,11 @@ function CategoryEditor({ store, catId, updateCategories, onBack }) {
           )}
 
           {cat.type === "movement" && (
-            <Field label="activity for each day of the week">
-              <PerDayEditor perDay={cat.perDay} onChange={(perDay) => patch({ perDay })} accent={a}/>
+            <Field label="your 3 favorite exercises">
+              <ExercisePicker
+                value={cat.exercises || []}
+                onChange={(exs) => patch({ exercises: exs, perDay: derivePerDay(exs) })}
+                accent={a}/>
             </Field>
           )}
         </div>
@@ -1211,27 +1342,8 @@ function SlotsEditor({ slots, headers, onChange }) {
   );
 }
 
-function PerDayEditor({ perDay, onChange, accent }) {
-  const set = (i, key, val) => onChange(perDay.map((d, idx) => idx === i ? { ...d, [key]: val } : d));
-  return (
-    <div>
-      {DAY_NAMES.map((name, i) => {
-        const d = perDay[i] || { label:"", icon:"activity" };
-        return (
-          <div key={i} style={{ borderBottom:"1px solid "+C.line, padding:"12px 0" }}>
-            <div style={{ fontSize:10, fontWeight:700, color:C.muted, letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:6 }}>{name}</div>
-            <input value={d.label} placeholder="activity (e.g. Hike)"
-                   onChange={e => set(i, "label", e.target.value)} style={{ marginBottom:8 }}/>
-            <IconPicker value={d.icon} onChange={(v) => set(i, "icon", v)} accent={accent}/>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 function IconPicker({ value, onChange, accent }) {
-  const a = accent || ACCENTS.forest;
+  const a = accent || ACCENTS.olive;
   return (
     <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
       {ICON_CHOICES.map(k => {
@@ -1356,12 +1468,6 @@ function textBtn() {
 function hintStyle() { return { fontSize:11, color:C.muted, marginTop:6, fontStyle:"italic" }; }
 function paraStyle() { return { fontSize:14, lineHeight:1.7, color:C.ink, margin:"0 0 16px" }; }
 function cardStyle() { return { background:C.card, border:"1px solid "+C.line, padding:"24px 22px" }; }
-
-function clampInt(v, min, max, fb) {
-  const n = parseInt(v, 10);
-  if (isNaN(n)) return fb;
-  return Math.max(min, Math.min(max, n));
-}
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>

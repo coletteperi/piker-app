@@ -7,7 +7,7 @@
 <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='0' y='0' width='50' height='50' fill='%23c8d0d3'/><rect x='50' y='0' width='50' height='50' fill='%238b5e3c'/><rect x='0' y='50' width='50' height='50' fill='%23d8b033'/><rect x='50' y='50' width='50' height='50' fill='%238c8e3e'/></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sigmar&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   html, body, #root { margin:0; padding:0; min-height:100%; background:#f6f3ec; }
   body {
@@ -70,10 +70,13 @@ const IconChart = (p) => <Icon {...p} d={<><line x1="3" y1="3" x2="3" y2="21"/><
 const IconSun = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M5 5l1.5 1.5"/><path d="M17.5 17.5L19 19"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M5 19l1.5-1.5"/><path d="M17.5 6.5L19 5"/></>}/>;
 const IconLeaf = (p) => <Icon {...p} d={<><path d="M11 20A7 7 0 0 1 4 13c0-5 4-9 9-9a9 9 0 0 1 8 8c0 4-3 8-7 8z"/><path d="M2 22s2-4 9-7"/></>}/>;
 const IconHeart = (p) => <Icon {...p} d={<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>}/>;
+const IconClock = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>}/>;
+const IconHash = (p) => <Icon {...p} d={<><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></>}/>;
 
 const ICONS = {
   activity: IconActivity, waves: IconWaves, mountain: IconMountain, wind: IconWind,
   coffee: IconCoffee, book: IconBook, moon: IconMoon, sun: IconSun, leaf: IconLeaf, heart: IconHeart,
+  clock: IconClock, hash: IconHash,
 };
 const ICON_CHOICES = Object.keys(ICONS);
 
@@ -99,7 +102,7 @@ function buildDaysForWeek(weekStart) {
   });
 }
 
-/* ---------- Color palette — NARI-inspired ---------- */
+/* ---------- Color palette ---------- */
 const C = {
   bg:      "#f6f3ec",
   bgAlt:   "#ffffff",
@@ -143,6 +146,56 @@ function derivePerDay(exercises) {
   return Array.from({ length:7 }, (_, i) => ({ ...exs[i % exs.length] }));
 }
 
+/* ---------- Number / duration formatting ---------- */
+function formatNum(n) {
+  if (n == null) return "0";
+  if (n === Math.floor(n)) return String(n);
+  return n.toFixed(1);
+}
+function formatDuration(min) {
+  const m = Math.max(0, Math.round(min || 0));
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  if (h && r) return `${h}h ${r}m`;
+  if (h) return `${h}h`;
+  return `${r}m`;
+}
+function weeklyAggregate(cat, values) {
+  if (cat.type === "number") {
+    const nums = (values || []).filter(v => typeof v === "number");
+    const total = nums.reduce((a,b)=>a+b, 0);
+    const avg = nums.length ? total/nums.length : 0;
+    const u = cat.unit || "";
+    return {
+      summary: `${formatNum(total)}${u ? " " + u : ""}`,
+      detail: nums.length ? `avg ${formatNum(avg)}${u ? " " + u : ""}/day · ${nums.length}/7 days` : "no entries yet",
+      total, avg,
+    };
+  }
+  if (cat.type === "duration") {
+    const nums = (values || []).filter(v => typeof v === "number");
+    const total = nums.reduce((a,b)=>a+b, 0);
+    const avg = nums.length ? total/nums.length : 0;
+    return {
+      summary: formatDuration(total),
+      detail: nums.length ? `avg ${formatDuration(avg)}/day · ${nums.length}/7 days` : "no entries yet",
+      total, avg,
+    };
+  }
+  if (cat.type === "category") {
+    const counts = {};
+    for (const v of values || []) if (v) counts[v] = (counts[v]||0) + 1;
+    const items = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    const totalPicks = items.reduce((s,[,v])=>s+v,0);
+    return {
+      summary: items.length ? items.map(([k,v]) => `${k} ×${v}`).join(" · ") : "no picks yet",
+      detail: items.length ? `${totalPicks} total picks` : "",
+      counts, items,
+    };
+  }
+  return null;
+}
+
 /* ---------- Defaults ---------- */
 function defaultCategories() {
   const exercises = [
@@ -165,7 +218,7 @@ function defaultCategories() {
       weightLbs: 150, bottleOz: 24,
     },
     {
-      id: "reading", name: "Reading", type: "check",
+      id: "reading", name: "Reading", type: "checkbox",
       subtitle: "5 minutes a day. quiets the mind.",
       accent: "mustard",
       icon: "book",
@@ -176,11 +229,15 @@ function defaultCategories() {
 function defaultDataFor(cat) {
   switch (cat.type) {
     case "movement":
-    case "check":   return { values: Array(7).fill(false) };
-    case "slots":   return { values: Array(7).fill(0).map(() => cat.slots.map(() => false)) };
-    case "water":   return { values: Array(7).fill(0) };
-    case "counter": return { values: Array(7).fill(0) };
-    default:        return { values: Array(7).fill(null) };
+    case "checkbox":
+    case "check":     return { values: Array(7).fill(false) };
+    case "slots":     return { values: Array(7).fill(0).map(() => cat.slots.map(() => false)) };
+    case "water":     return { values: Array(7).fill(0) };
+    case "counter":   return { values: Array(7).fill(0) };
+    case "number":    return { values: Array(7).fill(null) };
+    case "duration":  return { values: Array(7).fill(null) };
+    case "category":  return { values: Array(7).fill(null) };
+    default:          return { values: Array(7).fill(null) };
   }
 }
 
@@ -206,10 +263,12 @@ function loadStore() {
     if (!raw) return freshStore();
     const s = JSON.parse(raw);
     if (!s.categories || !s.weeks) return freshStore();
+    // Migrate "check" type → "checkbox"
     for (const c of s.categories) {
+      if (c.type === "check") c.type = "checkbox";
       if (!c.accent || !ACCENTS[c.accent]) c.accent = ACCENT_KEYS[Math.floor(Math.random()*ACCENT_KEYS.length)];
     }
-    if (s.onboarded) ensureWeek(s, weekKey(new Date()));
+    if (s.onboarded || s.categories.length > 0) ensureWeek(s, weekKey(new Date()));
     return s;
   } catch (e) { return freshStore(); }
 }
@@ -235,7 +294,8 @@ function App() {
     </div>
   );
 
-  if (!store.onboarded) {
+  const hasExistingData = store.categories && store.categories.length > 0;
+  if (!store.onboarded && !hasExistingData) {
     return <Onboarding onComplete={(cats) => {
       setStore(s => {
         const next = { ...s, categories: cats, weeks: {}, onboarded: true };
@@ -341,7 +401,7 @@ function Onboarding({ onComplete }) {
   const addCustom = () => {
     const id = "cat_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
     const accent = ACCENT_KEYS[cats.length % ACCENT_KEYS.length];
-    setCats([...cats, { id, name: "New habit", type: "check", accent, subtitle: "", icon: "heart" }]);
+    setCats([...cats, { id, name: "New habit", type: "checkbox", accent, subtitle: "", icon: "heart" }]);
   };
 
   const movement = cats.find(c => c.type === "movement");
@@ -441,7 +501,7 @@ function OnboardingCard({ cat, onChange, onRemove, canRemove }) {
           </>
         )}
 
-        {(cat.type === "check" || cat.type === "counter") && (
+        {(cat.type === "checkbox" || cat.type === "counter" || cat.type === "number" || cat.type === "duration") && (
           <Field label="note (optional)">
             <input value={cat.subtitle || ""} placeholder="(optional)"
                    onChange={e => onChange({ subtitle: e.target.value })}/>
@@ -472,7 +532,6 @@ function ExercisePicker({ value, onChange, accent }) {
     setCustom("");
   };
 
-  // preset list to show — include any custom values not in PRESET_EXERCISES at the top
   const customSelected = value.filter(v => !PRESET_EXERCISES.find(p => p.label.toLowerCase() === v.label.toLowerCase()));
   const allChips = [...customSelected, ...PRESET_EXERCISES];
 
@@ -521,7 +580,7 @@ function ExercisePicker({ value, onChange, accent }) {
   );
 }
 
-/* =================== NUMBER INPUT (forgiving) =================== */
+/* =================== NUMBER INPUT (forgiving, with min/max) =================== */
 function NumberInput({ value, onChange, min, max, fallback, ...rest }) {
   const [local, setLocal] = useState(String(value ?? ""));
   useEffect(() => { setLocal(String(value ?? "")); }, [value]);
@@ -628,8 +687,9 @@ function ColorBlocks() {
 }
 
 function wordmarkStyle(size) {
-  return { fontSize:size, fontWeight:800, margin:0, color:C.ink,
-           letterSpacing:"0.06em", textAlign:"center", lineHeight:1, fontFamily:"inherit" };
+  return { fontSize:size, fontWeight:400, margin:0, color:C.ink,
+           letterSpacing:"0.02em", textAlign:"center", lineHeight:1,
+           fontFamily:'"Sigmar", "Bowlby One", system-ui, sans-serif' };
 }
 
 function Footer() {
@@ -649,7 +709,10 @@ function CategoryCard({ cat, days, data, update }) {
   if (cat.type === "slots")    return <SlotsCard cat={cat} days={days} data={data} update={update}/>;
   if (cat.type === "water")    return <WaterCard cat={cat} days={days} data={data} update={update}/>;
   if (cat.type === "counter")  return <CounterCard cat={cat} days={days} data={data} update={update}/>;
-  if (cat.type === "check")    return <CheckCard cat={cat} days={days} data={data} update={update}/>;
+  if (cat.type === "checkbox" || cat.type === "check") return <CheckboxCard cat={cat} days={days} data={data} update={update}/>;
+  if (cat.type === "number")   return <NumberHabitCard cat={cat} days={days} data={data} update={update}/>;
+  if (cat.type === "duration") return <DurationHabitCard cat={cat} days={days} data={data} update={update}/>;
+  if (cat.type === "category") return <CategoryHabitCard cat={cat} days={days} data={data} update={update}/>;
   return null;
 }
 
@@ -868,7 +931,7 @@ function CounterCard({ cat, days, data, update }) {
   );
 }
 
-function CheckCard({ cat, days, data, update }) {
+function CheckboxCard({ cat, days, data, update }) {
   const v = data.values, a = accentOf(cat);
   const count = v.filter(Boolean).length;
   const IconC = ICONS[cat.icon] || IconCheck;
@@ -898,9 +961,178 @@ function CheckCard({ cat, days, data, update }) {
   );
 }
 
+/* =================== NUMBER HABIT =================== */
+function NumberHabitCard({ cat, days, data, update }) {
+  const v = data.values, a = accentOf(cat);
+  const agg = weeklyAggregate(cat, v);
+  const setVal = (i, n) => update(d => { const nv = [...d.values]; nv[i] = n; return { ...d, values: nv }; });
+  return (
+    <Section title={cat.name} subtitle={agg.summary} accent={a}>
+      <div style={{ padding:"10px 16px 16px" }}>
+        {cat.subtitle && <div style={{ fontSize:12, color:C.inkSoft, marginBottom:8 }}>{cat.subtitle}</div>}
+        <div style={{ fontSize:11, color:C.muted, marginBottom:8 }}>{agg.detail}</div>
+        {days.map((d, i) => {
+          const val = v[i];
+          const hit = dayHit(cat, val);
+          return (
+            <div key={i} style={{ padding:"10px 0", borderBottom: i === 6 ? "none" : "1px solid "+C.line,
+                                  display:"flex", alignItems:"center", gap:12 }}>
+              <div style={{ fontSize:12, minWidth:90 }}>
+                <strong>{d.name.slice(0,3).toUpperCase()}</strong> <span style={{ color:C.muted }}>{d.date}</span>
+              </div>
+              <div style={{ flex:1, display:"flex", alignItems:"center", gap:8, justifyContent:"flex-end" }}>
+                <FloatInput value={val}
+                            onChange={(n) => setVal(i, n)}
+                            placeholder="0"
+                            style={{ width:90, textAlign:"right",
+                                     borderBottomColor: hit ? a.solid : C.rule,
+                                     color: hit ? a.solid : C.ink,
+                                     fontWeight: hit ? 700 : 500 }}/>
+                {cat.unit && <span style={{ fontSize:12, color:C.muted, minWidth:60 }}>{cat.unit}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+/* =================== DURATION HABIT =================== */
+function DurationHabitCard({ cat, days, data, update }) {
+  const v = data.values, a = accentOf(cat);
+  const agg = weeklyAggregate(cat, v);
+  const setVal = (i, mins) => update(d => { const nv = [...d.values]; nv[i] = mins; return { ...d, values: nv }; });
+  return (
+    <Section title={cat.name} subtitle={agg.summary} accent={a}>
+      <div style={{ padding:"10px 16px 16px" }}>
+        {cat.subtitle && <div style={{ fontSize:12, color:C.inkSoft, marginBottom:8 }}>{cat.subtitle}</div>}
+        <div style={{ fontSize:11, color:C.muted, marginBottom:8 }}>{agg.detail}</div>
+        {days.map((d, i) => {
+          const total = v[i];
+          const hit = dayHit(cat, total);
+          const h = total != null ? Math.floor(total / 60) : null;
+          const m = total != null ? total % 60 : null;
+          const setHM = (hh, mm) => {
+            const H = hh == null ? 0 : hh;
+            const M = mm == null ? 0 : mm;
+            const t = H * 60 + M;
+            setVal(i, (hh == null && mm == null) ? null : t);
+          };
+          return (
+            <div key={i} style={{ padding:"10px 0", borderBottom: i === 6 ? "none" : "1px solid "+C.line,
+                                  display:"flex", alignItems:"center", gap:12 }}>
+              <div style={{ fontSize:12, minWidth:90 }}>
+                <strong>{d.name.slice(0,3).toUpperCase()}</strong> <span style={{ color:C.muted }}>{d.date}</span>
+              </div>
+              <div style={{ flex:1, display:"flex", alignItems:"center", gap:6, justifyContent:"flex-end" }}>
+                <FloatInput value={h} onChange={(nh) => setHM(nh, m)} placeholder="0" min={0} max={24}
+                            style={{ width:48, textAlign:"right",
+                                     borderBottomColor: hit ? a.solid : C.rule,
+                                     color: hit ? a.solid : C.ink,
+                                     fontWeight: hit ? 700 : 500 }}/>
+                <span style={{ fontSize:11, color:C.muted }}>h</span>
+                <FloatInput value={m} onChange={(nm) => setHM(h, nm)} placeholder="0" min={0} max={59}
+                            style={{ width:48, textAlign:"right",
+                                     borderBottomColor: hit ? a.solid : C.rule,
+                                     color: hit ? a.solid : C.ink,
+                                     fontWeight: hit ? 700 : 500 }}/>
+                <span style={{ fontSize:11, color:C.muted }}>m</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+/* =================== CATEGORY HABIT =================== */
+function CategoryHabitCard({ cat, days, data, update }) {
+  const v = data.values, a = accentOf(cat);
+  const agg = weeklyAggregate(cat, v);
+  const options = cat.options && cat.options.length ? cat.options : ["Option 1"];
+  const setVal = (i, val) => update(d => { const nv = [...d.values]; nv[i] = val; return { ...d, values: nv }; });
+  const useDropdown = options.length > 4;
+  return (
+    <Section title={cat.name} subtitle={agg.summary} accent={a}>
+      <div style={{ padding:"10px 16px 16px" }}>
+        {cat.subtitle && <div style={{ fontSize:12, color:C.inkSoft, marginBottom:8 }}>{cat.subtitle}</div>}
+        <div style={{ fontSize:11, color:C.muted, marginBottom:8 }}>{agg.detail}</div>
+        {days.map((d, i) => {
+          const val = v[i];
+          return (
+            <div key={i} style={{ padding:"10px 0", borderBottom: i === 6 ? "none" : "1px solid "+C.line }}>
+              <div style={{ fontSize:12, marginBottom:8 }}>
+                <strong>{d.name.slice(0,3).toUpperCase()}</strong> <span style={{ color:C.muted }}>{d.date}</span>
+                {val && <span style={{ float:"right", color:a.solid, fontWeight:700, fontSize:11, letterSpacing:"0.04em" }}>{val}</span>}
+              </div>
+              {useDropdown ? (
+                <select value={val ?? ""} onChange={e => setVal(i, e.target.value || null)}
+                        style={{ borderBottomColor: val ? a.solid : C.rule }}>
+                  <option value="">— pick one —</option>
+                  {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              ) : (
+                <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                  {options.map((opt) => {
+                    const on = val === opt;
+                    return (
+                      <button key={opt} onClick={() => setVal(i, on ? null : opt)}
+                              style={{
+                                padding:"7px 12px",
+                                border:"1px solid "+(on ? a.solid : C.rule),
+                                background: on ? a.solid : "transparent",
+                                color: on ? a.onSolid : C.ink,
+                                fontSize:12, fontWeight: on ? 700 : 500,
+                                cursor:"pointer", letterSpacing:"0.02em", borderRadius:0,
+                              }}>
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+/* =================== FloatInput (allows free typing for number/duration entries) =================== */
+function FloatInput({ value, onChange, min = 0, max, ...rest }) {
+  const [local, setLocal] = useState(value == null ? "" : String(value));
+  useEffect(() => { setLocal(value == null ? "" : String(value)); }, [value]);
+  return (
+    <input type="number" inputMode="numeric"
+           value={local}
+           onChange={(e) => {
+             const raw = e.target.value;
+             setLocal(raw);
+             if (raw === "") { onChange(null); return; }
+             const n = parseFloat(raw);
+             if (isNaN(n)) return;
+             if (n < min) return;
+             if (max != null && n > max) return;
+             onChange(n);
+           }}
+           onBlur={() => {
+             if (local === "") return;
+             const n = parseFloat(local);
+             if (isNaN(n)) { onChange(null); setLocal(""); return; }
+             let v = Math.max(min, n);
+             if (max != null) v = Math.min(max, v);
+             onChange(v); setLocal(String(v));
+           }}
+           {...rest}/>
+  );
+}
+
 /* =================== STATS =================== */
 function dayHit(cat, dayValue) {
-  if (cat.type === "movement" || cat.type === "check") return !!dayValue;
+  if (cat.type === "movement" || cat.type === "checkbox" || cat.type === "check") return !!dayValue;
   if (cat.type === "slots") {
     if (!Array.isArray(dayValue)) return false;
     return dayValue.length === cat.slots.length && dayValue.every(Boolean);
@@ -912,6 +1144,15 @@ function dayHit(cat, dayValue) {
     return (dayValue || 0) >= bottlesGoal;
   }
   if (cat.type === "counter") return (dayValue || 0) > 0;
+  if (cat.type === "number") {
+    if (cat.dailyGoal != null) return (dayValue ?? 0) >= cat.dailyGoal;
+    return (dayValue ?? 0) > 0;
+  }
+  if (cat.type === "duration") {
+    if (cat.dailyGoalMinutes != null) return (dayValue ?? 0) >= cat.dailyGoalMinutes;
+    return (dayValue ?? 0) > 0;
+  }
+  if (cat.type === "category") return dayValue != null && dayValue !== "";
   return false;
 }
 
@@ -941,6 +1182,15 @@ function Stats({ store, onBack, realCurrentWeek }) {
   );
 }
 
+function tileSummary(cat, values) {
+  if (cat.type === "number" || cat.type === "duration" || cat.type === "category") {
+    const agg = weeklyAggregate(cat, values);
+    return agg ? agg.summary : "";
+  }
+  const hits = (values || []).filter(v => dayHit(cat, v)).length;
+  return `${hits} / 7 days`;
+}
+
 function ThisWeekSummary({ store, wk }) {
   const data = store.weeks[wk] || {};
   return (
@@ -948,15 +1198,15 @@ function ThisWeekSummary({ store, wk }) {
       {store.categories.map(cat => {
         const a = accentOf(cat);
         const cv = (data[cat.id] && data[cat.id].values) || [];
-        const hits = cv.filter(v => dayHit(cat, v)).length;
         return (
           <div key={cat.id} style={{ border:"1px solid "+C.line, padding:"10px 12px",
                                      display:"flex", alignItems:"center", gap:10 }}>
-            <span style={{ width:6, height:32, background:a.solid, flexShrink:0 }}/>
+            <span style={{ width:6, height:38, background:a.solid, flexShrink:0 }}/>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:12, fontWeight:700, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", letterSpacing:"0.02em" }}>{cat.name}</div>
-              <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
-                <strong style={{ color:a.solid, fontSize:14 }}>{hits}</strong> / 7 days
+              <div style={{ fontSize:13, color:a.solid, marginTop:2, fontWeight:700,
+                             whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                {tileSummary(cat, cv)}
               </div>
             </div>
           </div>
@@ -970,14 +1220,17 @@ function CategoryStats({ cat, store, weeks, allWeeks }) {
   const a = accentOf(cat);
   const today = new Date(); today.setHours(0,0,0,0);
   const series = [];
+  const allValues = [];
   for (const wk of allWeeks) {
     const data = store.weeks[wk]?.[cat.id]?.values;
     const days = buildDaysForWeek(new Date(wk + "T00:00:00"));
     for (let i = 0; i < 7; i++) {
       const d = new Date(days[i].iso + "T00:00:00");
       if (d > today) continue;
-      const hit = data ? dayHit(cat, data[i]) : false;
+      const val = data ? data[i] : undefined;
+      const hit = data ? dayHit(cat, val) : false;
       series.push({ iso: days[i].iso, hit });
+      allValues.push(val);
     }
   }
   let currentStreak = 0;
@@ -988,6 +1241,7 @@ function CategoryStats({ cat, store, weeks, allWeeks }) {
   for (const s of series) { if (s.hit) { run++; best = Math.max(best, run); } else run = 0; }
   const totalHits = series.filter(s => s.hit).length;
   const totalDays = series.length || 1;
+  const fullAgg = weeklyAggregate(cat, allValues);
 
   return (
     <div style={{ background:C.card, border:"1px solid "+C.line, marginBottom:20, overflow:"hidden" }}>
@@ -1006,6 +1260,46 @@ function CategoryStats({ cat, store, weeks, allWeeks }) {
         <Stat label="best" value={best} suffix={best === 1 ? "day" : "days"} accent={a}/>
         <Stat label="hit rate" value={Math.round((totalHits/totalDays)*100)} suffix="%" accent={a}/>
       </div>
+
+      {fullAgg && (cat.type === "number" || cat.type === "duration") && (
+        <div style={{ padding:"0 16px 6px" }}>
+          <div style={{ border:"1px solid "+C.line, padding:"10px 12px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <div>
+              <div style={{ fontSize:9, color:C.muted, letterSpacing:"0.14em", textTransform:"uppercase", fontWeight:700 }}>all-time total</div>
+              <div style={{ fontSize:18, fontWeight:700, color:a.solid, marginTop:2 }}>{fullAgg.summary}</div>
+            </div>
+            <div style={{ textAlign:"right" }}>
+              <div style={{ fontSize:9, color:C.muted, letterSpacing:"0.14em", textTransform:"uppercase", fontWeight:700 }}>avg / tracked day</div>
+              <div style={{ fontSize:14, fontWeight:600, color:C.ink, marginTop:2 }}>
+                {cat.type === "duration" ? formatDuration(fullAgg.avg) : `${formatNum(fullAgg.avg)}${cat.unit ? " " + cat.unit : ""}`}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {fullAgg && cat.type === "category" && fullAgg.items && fullAgg.items.length > 0 && (
+        <div style={{ padding:"0 16px 6px" }}>
+          <div style={{ border:"1px solid "+C.line, padding:"10px 12px" }}>
+            <div style={{ fontSize:9, color:C.muted, letterSpacing:"0.14em", textTransform:"uppercase", fontWeight:700, marginBottom:8 }}>breakdown</div>
+            {fullAgg.items.map(([opt, count]) => {
+              const max = Math.max(...fullAgg.items.map(([,c]) => c));
+              const pct = (count / max) * 100;
+              return (
+                <div key={opt} style={{ marginBottom:6 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:2 }}>
+                    <span>{opt}</span>
+                    <span style={{ color:a.solid, fontWeight:700 }}>{count}</span>
+                  </div>
+                  <div style={{ height:6, background:C.line }}>
+                    <div style={{ width:`${pct}%`, height:"100%", background:a.solid }}/>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div style={{ padding:"6px 16px 16px" }}>
         <div style={subheadStyle({ marginTop:8, marginBottom:8 })}>last {weeks.length} {weeks.length === 1 ? "week" : "weeks"}</div>
@@ -1133,7 +1427,7 @@ function Settings({ store, updateCategories, onBack, onEdit }) {
                 <button onClick={() => onEdit(cat.id)} style={pillBtn()}>edit</button>
                 <button title="delete category"
                         onClick={() => {
-                          if (!confirm(`delete "${cat.name}"? this removes its data for this week.`)) return;
+                          if (!confirm(`delete "${cat.name}"? this removes its data.`)) return;
                           updateCategories(cs => cs.filter(c => c.id !== cat.id));
                         }}
                         style={{ ...pillBtn(), color:"#a04040", borderColor:"#d4b0a0" }}>
@@ -1173,47 +1467,80 @@ function labelForType(c) {
   if (c.type === "slots")    return `multi-slot · ${c.slots.length} slots`;
   if (c.type === "water")    return `water · ${c.weightLbs || "?"}lb · ${c.bottleOz || "?"}oz bottle`;
   if (c.type === "counter")  return `counter (up to ${c.max || 3})`;
-  if (c.type === "check")    return "daily yes/no";
+  if (c.type === "checkbox" || c.type === "check") return "daily yes/no";
+  if (c.type === "number")   return `number${c.unit ? " · " + c.unit : ""}`;
+  if (c.type === "duration") return "duration · time spent";
+  if (c.type === "category") return `pick one · ${(c.options||[]).length} options`;
   return c.type;
 }
 
+function newCatForType(name, type, accent) {
+  const id = "cat_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  const base = { id, name, type, accent, subtitle: "" };
+  if (type === "checkbox") return { ...base, icon: "heart" };
+  if (type === "counter")  return { ...base, max: 3, icon: "coffee" };
+  if (type === "slots")    return { ...base, slots: ["Slot 1","Slot 2","Slot 3"], slotHeaders: ["", "", ""] };
+  if (type === "water")    return { ...base, subtitle: "half your weight in ounces.", weightLbs: 150, bottleOz: 24 };
+  if (type === "movement") {
+    const exs = [{ label:"Walking", icon:"waves" },{ label:"Hiking", icon:"mountain" },{ label:"Pilates", icon:"activity" }];
+    return { ...base, subtitle: "5+ days a week", exercises: exs, perDay: derivePerDay(exs) };
+  }
+  if (type === "number")   return { ...base, unit: "", dailyGoal: null };
+  if (type === "duration") return { ...base, dailyGoalMinutes: null };
+  if (type === "category") return { ...base, options: ["Option 1", "Option 2"] };
+  return base;
+}
+
+const TYPE_CHOICES = [
+  { value: "checkbox", label: "Checkbox", desc: "yes / no per day" },
+  { value: "number",   label: "Number",   desc: "count something with a unit" },
+  { value: "duration", label: "Duration", desc: "track time spent" },
+  { value: "category", label: "Category", desc: "pick one from a list" },
+  { value: "counter",  label: "Counter",  desc: "up to N times per day" },
+  { value: "slots",    label: "Multi-slot", desc: "several boxes per day" },
+  { value: "water",    label: "Water",    desc: "weight-based goal" },
+  { value: "movement", label: "Movement", desc: "different activity per day" },
+];
+
 function NewCategoryForm({ onCreate, onCancel, existingCount }) {
   const [name, setName] = useState("");
-  const [type, setType] = useState("check");
+  const [type, setType] = useState("checkbox");
   const submit = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    const id = "cat_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
     const accent = ACCENT_KEYS[existingCount % ACCENT_KEYS.length];
-    let cat = { id, name: trimmed, type, accent };
-    if (type === "check")    cat = { ...cat, subtitle: "", icon: "heart" };
-    if (type === "counter")  cat = { ...cat, subtitle: "", max: 3, icon: "coffee" };
-    if (type === "slots")    cat = { ...cat, subtitle: "", slots: ["Slot 1","Slot 2","Slot 3"], slotHeaders: ["", "", ""] };
-    if (type === "water")    cat = { ...cat, subtitle: "half your weight in ounces.", weightLbs: 150, bottleOz: 24 };
-    if (type === "movement") {
-      const exs = [{ label:"Walking", icon:"waves" },{ label:"Hiking", icon:"mountain" },{ label:"Pilates", icon:"activity" }];
-      cat = { ...cat, subtitle: "5+ days a week", exercises: exs, perDay: derivePerDay(exs) };
-    }
-    onCreate(cat);
+    onCreate(newCatForType(trimmed, type, accent));
   };
   return (
     <div style={{ background:C.card, border:"1px solid "+C.line, padding:16 }}>
+      <Field label="type">
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:6 }}>
+          {TYPE_CHOICES.map(t => {
+            const on = type === t.value;
+            return (
+              <button key={t.value} onClick={() => setType(t.value)}
+                      style={{
+                        padding:"10px 12px", textAlign:"left",
+                        border:"1px solid "+(on ? C.ink : C.rule),
+                        background: on ? C.ink : "transparent",
+                        color: on ? "#fafaf5" : C.ink,
+                        cursor:"pointer", borderRadius:0,
+                      }}>
+                <div style={{ fontSize:12, fontWeight:700, letterSpacing:"0.02em" }}>{t.label}</div>
+                <div style={{ fontSize:10, opacity:0.7, marginTop:2 }}>{t.desc}</div>
+              </button>
+            );
+          })}
+        </div>
+      </Field>
       <Field label="name">
         <input value={name} autoFocus onChange={e => setName(e.target.value)} placeholder="e.g. stretching"/>
       </Field>
-      <Field label="type">
-        <select value={type} onChange={e => setType(e.target.value)}>
-          <option value="check">daily yes/no</option>
-          <option value="counter">counter (up to N)</option>
-          <option value="slots">multiple slots per day</option>
-          <option value="water">water (weight-based)</option>
-          <option value="movement">movement (different per day)</option>
-        </select>
-      </Field>
       <div style={{ display:"flex", gap:8, marginTop:12 }}>
-        <button onClick={submit} style={primaryBtn()}>add it</button>
+        <button onClick={submit} style={primaryBtn()} disabled={!name.trim()}>add it</button>
         <button onClick={onCancel} style={pillBtn()}>cancel</button>
       </div>
+      <div style={hintStyle()}>after adding, you'll be able to configure type-specific options like unit, options list, daily goal, etc.</div>
     </div>
   );
 }
@@ -1251,8 +1578,37 @@ function CategoryEditor({ store, catId, updateCategories, onBack }) {
             </>
           )}
 
-          {cat.type === "check" && (
+          {(cat.type === "checkbox" || cat.type === "check") && (
             <Field label="icon"><IconPicker value={cat.icon} onChange={v => patch({ icon: v })} accent={a}/></Field>
+          )}
+
+          {cat.type === "number" && (
+            <>
+              <Field label="unit (e.g. miles, pages, glasses)">
+                <input value={cat.unit || ""} onChange={e => patch({ unit: e.target.value })} placeholder="unit"/>
+              </Field>
+              <Field label="daily goal (optional)">
+                <FloatInput value={cat.dailyGoal} min={0}
+                             onChange={(v) => patch({ dailyGoal: v })} placeholder="leave blank for none"/>
+                <div style={hintStyle()}>if set, days that hit the goal count as ✓ in stats.</div>
+              </Field>
+            </>
+          )}
+
+          {cat.type === "duration" && (
+            <Field label="daily goal (minutes, optional)">
+              <FloatInput value={cat.dailyGoalMinutes} min={0}
+                           onChange={(v) => patch({ dailyGoalMinutes: v })} placeholder="leave blank for none"/>
+              <div style={hintStyle()}>if set, days reaching the goal count as ✓ in stats.</div>
+            </Field>
+          )}
+
+          {cat.type === "category" && (
+            <Field label="options (pick one each day)">
+              <OptionsEditor options={cat.options || []}
+                             onChange={(opts) => patch({ options: opts })}/>
+              <div style={hintStyle()}>2–8 options. each day you'll pick one.</div>
+            </Field>
           )}
 
           {cat.type === "water" && (
@@ -1337,6 +1693,30 @@ function SlotsEditor({ slots, headers, onChange }) {
       ))}
       <button onClick={add} style={{ ...pillBtn(), marginTop:4, display:"inline-flex", alignItems:"center", gap:6 }}>
         <IconPlus size={12} color={C.ink}/> add slot
+      </button>
+    </div>
+  );
+}
+
+function OptionsEditor({ options, onChange }) {
+  const set = (i, v) => onChange(options.map((o, idx) => idx === i ? v : o));
+  const add = () => onChange([...options, "Option " + (options.length + 1)]);
+  const remove = (i) => onChange(options.filter((_, idx) => idx !== i));
+  return (
+    <div>
+      {options.map((o, i) => (
+        <div key={i} style={{ display:"flex", gap:6, marginBottom:6 }}>
+          <input value={o} onChange={e => set(i, e.target.value)} style={{ flex:1 }}/>
+          <button onClick={() => remove(i)} disabled={options.length <= 2}
+                  style={{ ...pillBtn(), padding:"6px", opacity: options.length <= 2 ? 0.4 : 1 }}>
+            <IconTrash size={12} color={C.muted}/>
+          </button>
+        </div>
+      ))}
+      <button onClick={add} disabled={options.length >= 8}
+              style={{ ...pillBtn(), marginTop:4, display:"inline-flex", alignItems:"center", gap:6,
+                       opacity: options.length >= 8 ? 0.4 : 1 }}>
+        <IconPlus size={12} color={C.ink}/> add option
       </button>
     </div>
   );
